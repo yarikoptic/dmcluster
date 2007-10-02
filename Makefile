@@ -1,6 +1,6 @@
 
 CXXFLAGS=-O2 -g -Wall -Ibase/ -I /usr/include/nifti
-LDFLAGS+=-lniftiio
+LD_FLAGS+=-lniftiio
 
 all:  cluster.o density.o base
 	$(CXX) $(LD_FLAGS) -o cluster *.o base/*.o

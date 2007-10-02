@@ -139,7 +139,9 @@ double getVarwithin( const clusterlist_t& clusters, const std::vector<RUMBA::Poi
 }
 
 
-double dovariance ( const clusterlist_t& clusters, const std::vector<RUMBA::Point<double> > & allpoints, const std::map<int, std::vector<int> >& dense_point_neighbours)
+double dovariance ( const clusterlist_t& clusters,
+                    const std::vector<RUMBA::Point<double> > & allpoints,
+                    const std::map<int, std::vector<int> >& dense_point_neighbours)
 {
     RUMBA::Point<double> m;
     std::vector<RUMBA::Point<double> > cluster_means;
@@ -261,6 +263,67 @@ std::vector<point_t> loadfile(std::istream & in)
     for (uint i = 0; i < lines.size(); ++i)
         result.push_back(readpoint(lines[i]));
 
+    return result;
+}
+
+// read points from the file using thresholds to remove bogus ones
+std::vector<point_t> loadniftifile(std::string infile,
+                                   double threshold,
+                                   bool voxelspace = false)
+/*
+  @threshold -- if positive - select voxels above, if negative - select below
+  @voxelspace -- if to operate on coord or voxel indexes
+ */
+{
+    std::vector<point_t> result;
+    nifti_image * ni = nifti_image_read(infile.c_str(), true);
+    double x, y, z, t;
+    int ex, ey, ez, et,			// helpers to compute coordinates  out of offset
+        ox,
+        dx, dy, dz, dt;
+    float * data = NULL;
+
+    switch (ni->datatype)
+    {
+    case DT_FLOAT32:
+        data = static_cast<float*>(ni->data);
+        break;
+    default:
+        throw RUMBA::Exception ("We do not yet handle datatype of the file " + infile +
+                                ". File has to be of double (32bit) floating point");
+    }
+
+    // Precompute offsets
+    ox = ni->nbyper;
+    ex = ni->nx*ox; dx=1;
+    ey = ni->nx*ni->ny*ox; dy=ni->nx;
+    ez = ni->nx*ni->ny*ox*ni->nz; dz=ni->nx*ni->ny;
+    et = ni->nx*ni->ny*ox*ni->nz*ni->nt; dt=ni->nx*ni->ny*ni->nz;
+
+    std::cerr << "Reading file " << infile;
+    // Lets loop through all voxels in that "Volume"
+    for (long long int offset=0;
+         offset< ni->nvox;
+         offset++) {
+        if ((threshold>0 and data[offset] < threshold) ||
+            (threshold<0 and data[offset] > threshold))
+            continue;
+        x = offset % ex / dx;
+        y = offset % ey / dy;
+        z = offset % ez / dz;
+        t = offset % et / dt;
+        if (!voxelspace)
+        {
+            x *= ni->dx;
+            y *= ni->dy;
+            z *= ni->dz;
+            t *= ni->dt;
+        }
+        std::cerr << "Adding point " << data[offset] << " = " 
+                  << x << "," << y << "," << z << "," << t << std::endl;
+        result.push_back(point_t(x, y, z));
+    }
+    std::cerr << "Found " << result.size() << " points" << std::endl;
     return result;
 }
 
@@ -423,9 +486,12 @@ double euclidean3(const RUMBA::Point<double>& p, const RUMBA::Point<double>&q)
 
 RUMBA::Argument myArgs [] =
 {
+    RUMBA::Argument ("infile",RUMBA::ALPHA,'i'),
+    RUMBA::Argument ( "valuesthreshold", RUMBA::NUMERIC, 'T' ),
     RUMBA::Argument ( "radius", RUMBA::NUMERIC, 'r' ),
     RUMBA::Argument ( "threshold", RUMBA::NUMERIC, 't' ),
     RUMBA::Argument ( "nonmembers", RUMBA::FLAG, 'n' ),
+    RUMBA::Argument ( "voxelspace", RUMBA::FLAG, '\0' ),
     RUMBA::Argument ( "bucket", RUMBA::FLAG, 'b' ),
     RUMBA::Argument ( "density", RUMBA::FLAG, 'd' ),
     RUMBA::Argument ( "variance", RUMBA::FLAG, '\0' ),
@@ -440,13 +506,21 @@ RUMBA::Argument myArgs [] =
 
 void help(const char* progname)
 {
-    std::cerr << "Usage: " << progname
-        << " -r|--radius <radius> -t|--threshold <N> -n|--nonmembers -b|--bucket[ -o|--outfile file [ --density|-d] [--rjmerge] [ --variance] [--nnbetween] [--rescale] ] --densepoints" << std::endl;
-    std::cerr << "densepoints: only output list of dense points, don't cluster" << std::endl;
-    std::cerr << "nonmembers: show points that don't meet density threshold (these are assigned to \"cluster 0\")" << std::endl;
-    std::cerr << "--variance: show the sum mean squared between clusters divided by mean squared between centroids" << std::endl;
-    std::cerr << "--nnbetween: similar to variance, but use nearest neighbor distance between clusters instead of centroid distance (recommended)" << std::endl;
-    std::cerr << "Note that density is output before variance if both args are given" << std::endl;
+    std::cerr << "Usage: " << progname << std::endl <<
+        " [-i|--infile <file> [--valuesthreshold|-V <value>] [--voxelspace]] [-o|--outfile <file>]" << std::endl <<
+        " [-r|--radius <radius>] [-t|--threshold <N>] [-n|--nonmembers]" << std::endl <<
+        " [-b|--bucket] [--density|-d]" << std::endl <<
+        " [--rjmerge] [--variance] [--nnbetween] [--rescale] ] [--densepoints]" << std::endl;
+    std::cerr << "Description of the options:" << std::endl <<
+        "  voxelspace: operate on voxel coordinates, not in mm's" << std::endl <<
+        "  densepoints: only output list of dense points, don't cluster" << std::endl <<
+        "  nonmembers: show points that don't meet density threshold" << std::endl <<
+        "              (these are assigned to \"cluster 0\")" << std::endl <<
+        "  variance: show the sum mean squared between clusters divided" << std::endl <<
+        "              by mean squared between centroids" << std::endl <<
+        "  nnbetween: similar to variance, but use nearest neighbor distance" << std::endl <<
+        "              between clusters instead of centroid distance (recommended)" << std::endl <<
+        "Note that density is output before variance if both args are given" << std::endl;
 }
 
 
@@ -454,10 +528,14 @@ void help(const char* progname)
 
 int main(int argc, char** argv)
 {
-    double radius = 0;
-    int threshold = 0;
+    double radius = 5.0;
+    int threshold = 10;
+    double valuesthreshold = 2.3;
+    bool voxelspace = false;    // by default -- operate in mm
+    bool operatenifti = false;  // by default operate with ascii and stdin/stdout
+
     bool show_nonmembers = false;
-    std::string outfile;
+    std::string infile, outfile;
 
     std::ostream * out = 0;
     std::ofstream fout;
@@ -489,13 +567,16 @@ int main(int argc, char** argv)
 
 
         if (argh.arg("radius"))
-            argh.arg("radius",radius);
+            argh.arg("radius", radius);
         else
-            throw RUMBA::Exception("--radius|-r required");
+            std::cerr
+                << "No radius parameter is specified. Assuming default radius = "
+                << radius << std::endl;
+            // throw RUMBA::Exception("--radius|-r required");
 
         if (argh.arg("startradius"))
         {
-            argh.arg("startradius",startradius);
+            argh.arg("startradius", startradius);
             if (startradius <= 0 || startradius > radius)
                 throw RUMBA::Exception ("start radius must be positive and less than radius");
             if (!argh.arg("step"))
@@ -505,7 +586,21 @@ int main(int argc, char** argv)
         if (argh.arg("threshold"))
             argh.arg("threshold",threshold);
         else
-            throw RUMBA::Exception("--threshold|-t required");
+            std::cerr
+                << "No threshold parameter is specified. Assuming default threshold = "
+                << threshold << std::endl;
+        //throw RUMBA::Exception("--threshold|-t required");
+
+        if (argh.arg("infile"))
+        {
+            if (argh.arg("valuesthreshold"))
+                argh.arg("valuesthreshold", valuesthreshold);
+            else
+                std::cerr
+                    << "No valuesthreshold parameter is specified. Assuming default value = "
+                    << valuesthreshold << std::endl;
+            voxelspace = argh.arg("voxelspace");
+        }
 
         if (threshold < 1)
             throw RUMBA::Exception
@@ -514,9 +609,26 @@ int main(int argc, char** argv)
         if (argh.arg("nonmembers"))
             show_nonmembers = true;
 
+        std::vector<point_t> allpoints;
+        std::vector<int> dense_points;
+        std::map<int, std::vector<int> > dense_point_neighbours;
+        clusterlist_t clusters;
+
+        if (argh.arg("infile"))
+        {
+            argh.arg("infile", infile);
+            allpoints = loadniftifile(infile, valuesthreshold, voxelspace);
+            operatenifti = true;
+        }
+        else
+        {
+            // Read ASCII input from stdin
+            allpoints = loadfile (std::cin);
+        }
+
         if (argh.arg("outfile"))
         {
-            argh.arg("outfile",outfile);
+            argh.arg("outfile", outfile);
             fout.open(outfile.c_str());
             if (!fout)
                 throw RUMBA::Exception("Couldn't open output file for writing");
@@ -525,15 +637,13 @@ int main(int argc, char** argv)
         else
             out = &std::cout;
 
-        std::vector<point_t> allpoints = loadfile (std::cin);
-        std::vector<int> dense_points;
-        std::map<int, std::vector<int> > dense_point_neighbours;
-        clusterlist_t clusters;
+
+
 //        if (argh.arg("bucket"))
         if (argh.arg("nnbetween"))
             between_ptr = &between;
 
-        std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+        //std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
 // special case: only return dense points, don't cluster
         if (argh.arg("densepoints")) {
             std::cerr << "Calling find_dense_points" << std::endl;
@@ -554,8 +664,7 @@ int main(int argc, char** argv)
                 allpoints, euclidean3, threshold,
 //                0.01, radius, radius/10.0 , dense_points, dense_point_neighbours, between_ptr);
                 startradius, radius, step , dense_points, dense_point_neighbours, between_ptr, merge_on_introduction, merge_rule, &cluster_sizes);
-            std::cerr << "done calling cluster2() " << std::endl;
-
+            std::cerr << "done calling cluster2() with " << clusters.size() << " clusters found." << std::endl;
         }
 
         if (show_nonmembers)
@@ -580,7 +689,7 @@ int main(int argc, char** argv)
             for (uint j = 0; j < clusters[i].size(); ++j )
             {
                 printpoint(allpoints[clusters[i][j]],*out)
-                    << " " << i+1 << std::endl;
+                    << " " << j << " " << i+1 << std::endl;
             }
         }
 
