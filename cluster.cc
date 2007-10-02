@@ -11,12 +11,14 @@
 #include <cmath>
 #include <set>
 
-std::string version = "$Revision: $";
+#include <nifti1_io.h>
+
+std::string version = "0.0.1";
 
 inline double square(double x) { return x*x; }
 
 
-bool mycomp(const std::pair<int,double>& left, const std::pair<int,double>& right) 
+bool mycomp(const std::pair<int,double>& left, const std::pair<int,double>& right)
 {
     return left.second < right.second;
 }
@@ -30,7 +32,7 @@ std::ostream& printpoint(const RUMBA::Point<double> & p, std::ostream& out)
 int countmembers ( std::vector<int> dense_points, int threshold)
 {
     int result = 0;
-    for (int i = 0; i < dense_points.size(); ++i) 
+    for (uint i = 0; i < dense_points.size(); ++i)
     {
         if (dense_points[i] >= threshold)
             ++result;
@@ -39,7 +41,7 @@ int countmembers ( std::vector<int> dense_points, int threshold)
     return result;
 }
 
-double variance 
+double variance
 (
  const std::set<int>& cluster, const std::vector<RUMBA::Point<double> > & allpoints,
  RUMBA::Point<double> * mean = 0
@@ -51,7 +53,7 @@ double variance
     double sumXX = 0, sumYY = 0, sumZZ = 0;
     RUMBA::Point<double> p;
 
-    for (std::set<int>::const_iterator i = cluster.begin(); 
+    for (std::set<int>::const_iterator i = cluster.begin();
             i !=cluster.end(); ++i)
     {
         p = allpoints[*i];
@@ -77,7 +79,7 @@ double variance
     return varX + varY + varZ;
 }
 
-double variance 
+double variance
 (
  const std::vector<RUMBA::Point<double> > & points
  )
@@ -105,17 +107,17 @@ double variance
     return varX + varY + varZ;
 }
 
-std::set<int> cluster_and_neighbours 
-( const std::vector<int> & cluster, 
+std::set<int> cluster_and_neighbours
+( const std::vector<int> & cluster,
   const std::map<int, std::vector<int> >& neighbours )
 {
     std::set<int> result;
     std::map<int, std::vector<int> >::const_iterator it;
-    for (int i = 0; i < cluster.size(); ++i )
+    for (uint i = 0; i < cluster.size(); ++i )
     {
         it = neighbours.find(cluster[i]); // it had better be there!
         assert (it!=neighbours.end());
-        for (int j = 0; j < it->second.size(); ++j)
+        for (uint j = 0; j < it->second.size(); ++j)
             result.insert ( it->second[j] );
     }
     return result;
@@ -125,11 +127,11 @@ double getVarwithin( const clusterlist_t& clusters, const std::vector<RUMBA::Poi
 {
     double result = 0;
     RUMBA::Point<double> m;
-    for (int i = 0; i < clusters.size(); ++i )
+    for (uint i = 0; i < clusters.size(); ++i )
     {
         if (clusters[i].size() < 2)
             continue;
-        std::set<int> thelist = 
+        std::set<int> thelist =
             cluster_and_neighbours(clusters[i],dense_point_neighbours);
         result += variance (thelist,allpoints,&m); //variance within
     }
@@ -142,23 +144,23 @@ double dovariance ( const clusterlist_t& clusters, const std::vector<RUMBA::Poin
     RUMBA::Point<double> m;
     std::vector<RUMBA::Point<double> > cluster_means;
     double varwithin = 0;
-    double Sxx = 0; 
-    double Syy = 0; 
-    double Szz = 0; 
-    double Sx = 0; 
-    double Sy = 0; 
-    double Sz = 0; 
+    double Sxx = 0;
+    double Syy = 0;
+    double Szz = 0;
+    double Sx = 0;
+    double Sy = 0;
+    double Sz = 0;
     int N = 0;
 
-    for (int i = 0; i < clusters.size(); ++i )
+    for (uint i = 0; i < clusters.size(); ++i )
     {
         if (clusters[i].size() < 2)
             continue;
-        std::set<int> thelist = 
+        std::set<int> thelist =
             cluster_and_neighbours(clusters[i],dense_point_neighbours);
         varwithin += variance (thelist,allpoints,&m); //variance within
         cluster_means.push_back(m);
-        for (int j = 0; j < clusters[i].size(); ++j ) {
+        for (uint j = 0; j < clusters[i].size(); ++j ) {
             RUMBA::Point<double> p = allpoints[clusters[i][j]];
             Sxx += square(p.x());
             Syy += square(p.y());
@@ -170,7 +172,7 @@ double dovariance ( const clusterlist_t& clusters, const std::vector<RUMBA::Poin
         }
     }
 
-    double vartotal = Sxx/N + Syy/N + Szz/N - 
+    double vartotal = Sxx/N + Syy/N + Szz/N -
         (square(Sx/N)+square(Sy/N)+square(Sz/N));
 
 //     std::cerr << variance(cluster_means) +varwithin << " " << vartotal << std::endl;
@@ -187,7 +189,7 @@ double density_ratio (const std::vector<int> & dense_points, int threshold)
     double density_within = 0;
     double density_total = 0;
     int dense_count = 0;
-    for (int i = 0; i < dense_points.size(); ++i)
+    for (uint i = 0; i < dense_points.size(); ++i)
     {
         density_total += dense_points[i];
         if (dense_points[i] >= threshold)
@@ -213,15 +215,15 @@ double density_ratio (const std::vector<int> & dense_points, int threshold)
 // so clusters is vector<vector<int> >
 
 
-void printclusters ( const clusterlist_t&  clusters, 
+void printclusters ( const clusterlist_t&  clusters,
         std::ostream& out=std::cout)
 {
     out << "--- begin printclusters ---" << std::endl;
     out << "--- there are " << clusters.size() << " clusters ---" << std::endl;
-    for (int i = 0; i < clusters.size(); ++i )
+    for (uint i = 0; i < clusters.size(); ++i )
     {
         out << "[";
-        for (int j = 0; j < clusters[i].size(); ++j)
+        for (uint j = 0; j < clusters[i].size(); ++j)
         {
             out << clusters[i][j] << ", ";
         }
@@ -251,21 +253,24 @@ std::vector<point_t> loadfile(std::istream & in)
     std::vector<point_t> result;
 
     while (std::getline(in,s))
+        if (s.length()>100)
+            throw RUMBA::Exception (
+                "Input line is too big (longer than 100 chars). It must be a binary file");
         lines.push_back(s);
 
-    for (int i = 0; i < lines.size(); ++i)
+    for (uint i = 0; i < lines.size(); ++i)
         result.push_back(readpoint(lines[i]));
 
     return result;
 }
 
 // not very efficient because we use linear searches
-std::vector<int> make_union(const std::vector<int>& x, 
+std::vector<int> make_union(const std::vector<int>& x,
         const std::vector<int>& y)
 {
     std::vector<int> result = x;
 
-    for (int i = 0; i < y.size(); ++i)
+    for (uint i = 0; i < y.size(); ++i)
         if ( std::find (result.begin(),result.end(),y[i])==result.end() )
             result.push_back(y[i]);
 
@@ -274,11 +279,11 @@ std::vector<int> make_union(const std::vector<int>& x,
 
 // not very efficient because we use linear searches
 // this function will be more efficient if the shorter argument is passed first
-std::vector<int> 
+std::vector<int>
 intersect(const std::vector<int>& x, const std::vector<int> & y)
 {
     std::vector<int> result;
-    for (int i = 0; i < y.size(); ++i)
+    for (uint i = 0; i < y.size(); ++i)
         if ( std::find (x.begin(),x.end(),y[i])!= x.end() )
             result.push_back(y[i]);
     return result;
@@ -299,13 +304,13 @@ clusterlist_t disjoint_union(clusterlist_t & L)
     {
         s = L[0];
         flag = 1;
-        while (flag) 
+        while (flag)
         {
             flag = 0;
-            for (int i = 0; i < L.size(); ++i)
+            for (uint i = 0; i < L.size(); ++i)
             {
                 n = intersect(s,L[i]);
-                if (n.size()) 
+                if (n.size())
                 {
                     s = make_union(s,L[i]);
                     flag = 1;
@@ -326,16 +331,16 @@ clusterlist_t disjoint_union(clusterlist_t & L)
 
 bool is_cluster_member(int index, const clusterlist_t & clusters)
 {
-    for (int i = 0; i < clusters.size(); ++i)
+    for (uint i = 0; i < clusters.size(); ++i)
     {
-        if (std::find(clusters[i].begin(),clusters[i].end(),index) 
+        if (std::find(clusters[i].begin(),clusters[i].end(),index)
                 != clusters[i].end())
             return true;
     }
     return false;
 }
 
-std::vector<int> non_cluster_members 
+std::vector<int> non_cluster_members
 (const clusterlist_t & clusters, int npoints)
 {
     std::vector<int> result;
@@ -365,8 +370,8 @@ void check_cluster(clusterlist_t & clusters)
 
 
 
-void merge_clusters 
-(const std::vector<std::pair<int,double> > & merged_clusters, 
+void merge_clusters
+(const std::vector<std::pair<int,double> > & merged_clusters,
  clusterlist_t &  clusters)
 {
     check_cluster(clusters);
@@ -376,24 +381,24 @@ void merge_clusters
     // create the new cluster
     std::vector<int> new_clust;
 
-    std::vector<int> merged_clusters_first; // projection of merged_clusters
-    for (int i = 0; i < merged_clusters.size(); ++i) 
+    std::vector<uint> merged_clusters_first; // projection of merged_clusters
+    for (uint i = 0; i < merged_clusters.size(); ++i)
         merged_clusters_first.push_back(merged_clusters[i].first);
 
     // copy the cluster list
-    for (int i = 0; i < clusters.size(); ++i )
+    for (uint i = 0; i < clusters.size(); ++i )
     {
         // if it's not a merged cluster, append it to the new cluster list
         if (std::find(merged_clusters_first.begin(),merged_clusters_first.end(),i
             ) == merged_clusters_first.end())
         {
-            // watch out: deep copy .. expensive ?            
-            new_clusters.push_back(clusters[i]); 
+            // watch out: deep copy .. expensive ?
+            new_clusters.push_back(clusters[i]);
         }
     }
     check_cluster(new_clusters);
 
-    for (int i = 0; i < merged_clusters.size(); ++i)
+    for (uint i = 0; i < merged_clusters.size(); ++i)
     {
         assert ( i < clusters.size());
         std::copy(clusters[merged_clusters_first[i]].begin(),clusters[merged_clusters_first[i]].end(),
@@ -416,7 +421,7 @@ double euclidean3(const RUMBA::Point<double>& p, const RUMBA::Point<double>&q)
     return std::sqrt( r.x()*r.x()+r.y()*r.y()+r.z()*r.z());
 }
 
-RUMBA::Argument myArgs [] = 
+RUMBA::Argument myArgs [] =
 {
     RUMBA::Argument ( "radius", RUMBA::NUMERIC, 'r' ),
     RUMBA::Argument ( "threshold", RUMBA::NUMERIC, 't' ),
@@ -428,14 +433,14 @@ RUMBA::Argument myArgs [] =
     RUMBA::Argument ( "nnbetween", RUMBA::FLAG, '\0'),
     RUMBA::Argument ( "densepoints", RUMBA::FLAG, '\0'),
     RUMBA::Argument ( "step", RUMBA::NUMERIC, '\0'), // step size for iterations
-    RUMBA::Argument ( "startradius", RUMBA::NUMERIC, '\0'), // initial value if multiple iterations are used 
+    RUMBA::Argument ( "startradius", RUMBA::NUMERIC, '\0'), // initial value if multiple iterations are used
     RUMBA::Argument ("rjmerge", RUMBA::FLAG, '\0'),
     RUMBA::Argument()
 };
 
 void help(const char* progname)
 {
-    std::cerr << "Usage: " << progname 
+    std::cerr << "Usage: " << progname
         << " -r|--radius <radius> -t|--threshold <N> -n|--nonmembers -b|--bucket[ -o|--outfile file [ --density|-d] [--rjmerge] [ --variance] [--nnbetween] [--rescale] ] --densepoints" << std::endl;
     std::cerr << "densepoints: only output list of dense points, don't cluster" << std::endl;
     std::cerr << "nonmembers: show points that don't meet density threshold (these are assigned to \"cluster 0\")" << std::endl;
@@ -461,7 +466,7 @@ int main(int argc, char** argv)
     bool merge_on_introduction = false;
     double step = -1;
     double startradius = 0.01;
-    std::vector<int> cluster_sizes; // number of clusters in the solution for 
+    std::vector<int> cluster_sizes; // number of clusters in the solution for
     // each value of the R parameter
 
     enum merge_rule_t merge_rule = NN_MERGE;
@@ -523,30 +528,30 @@ int main(int argc, char** argv)
         std::vector<point_t> allpoints = loadfile (std::cin);
         std::vector<int> dense_points;
         std::map<int, std::vector<int> > dense_point_neighbours;
-        clusterlist_t clusters; 
+        clusterlist_t clusters;
 //        if (argh.arg("bucket"))
         if (argh.arg("nnbetween"))
             between_ptr = &between;
 
         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
 // special case: only return dense points, don't cluster
-        if (argh.arg("densepoints")) { 
+        if (argh.arg("densepoints")) {
             std::cerr << "Calling find_dense_points" << std::endl;
             find_dense_points(allpoints, radius,threshold, dense_points,
                     dense_point_neighbours);
-            // now print 'em out ... 
+            // now print 'em out ...
             std::cerr << dense_points.size() << std::endl;
-            for (int i = 0; i < dense_points.size(); ++i)
+            for (uint i = 0; i < dense_points.size(); ++i)
             {
-                if (dense_points[i] >= threshold) 
+                if (dense_points[i] >= threshold)
                     printpoint(allpoints[i],*out) << " " << 1 << std::endl;
             }
         }
-        else 
+        else
         {
             std::cerr << "Calling cluster2() " << std::endl;
             clusters = cluster2(
-                allpoints, euclidean3, threshold, 
+                allpoints, euclidean3, threshold,
 //                0.01, radius, radius/10.0 , dense_points, dense_point_neighbours, between_ptr);
                 startradius, radius, step , dense_points, dense_point_neighbours, between_ptr, merge_on_introduction, merge_rule, &cluster_sizes);
             std::cerr << "done calling cluster2() " << std::endl;
@@ -555,14 +560,14 @@ int main(int argc, char** argv)
 
         if (show_nonmembers)
         {
-            for (int i = 0; i < dense_points.size(); ++i)
+            for (uint i = 0; i < dense_points.size(); ++i)
             {
                 if (dense_points[i] < threshold)
                     printpoint(allpoints[i],*out) << " " << 0 << std::endl;
             }
         }
 
-        for (int i = 0; i < clusters.size(); ++i )
+        for (uint i = 0; i < clusters.size(); ++i )
         {
             /*
             out << "[";
@@ -572,7 +577,7 @@ int main(int argc, char** argv)
             }
             out << "]" << std::endl;
             */
-            for (int j = 0; j < clusters[i].size(); ++j )
+            for (uint j = 0; j < clusters[i].size(); ++j )
             {
                 printpoint(allpoints[clusters[i][j]],*out)
                     << " " << i+1 << std::endl;
@@ -586,8 +591,8 @@ int main(int argc, char** argv)
 
         if (argh.arg("density"))
         {
-            std::cout << 
-                density_ratio(dense_points,threshold) 
+            std::cout <<
+                density_ratio(dense_points,threshold)
                 << std::endl;
         }
 
@@ -597,16 +602,16 @@ int main(int argc, char** argv)
             {
                 std::cout << getVarwithin(clusters,allpoints,dense_point_neighbours) / between << std::endl;
             }
-            else 
+            else
             {
-                std::cout << dovariance(clusters,allpoints, dense_point_neighbours) 
+                std::cout << dovariance(clusters,allpoints, dense_point_neighbours)
                 << std::endl;
             }
         }
         if (argh.arg("startradius"))
         {
             double rtmp = startradius;
-            for (int i = 0; i < cluster_sizes.size(); ++i )
+            for (uint i = 0; i < cluster_sizes.size(); ++i )
             {
                 std::cout << rtmp << " " << cluster_sizes[i] << std::endl;
                 rtmp += step;
