@@ -2,7 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-
+#include <limits>
 #include "cluster.h"
 #include "density.h"
 #include "rumba/arghandler.h"
@@ -14,6 +14,8 @@
 #include <nifti1_io.h>
 
 std::string version = "0.0.1";
+
+typedef float datatype;
 
 inline double square(double x) { return x*x; }
 
@@ -28,6 +30,106 @@ std::ostream& printpoint(const RUMBA::Point<double> & p, std::ostream& out)
     out << p.x() << " " << p.y() << " " << p.z() << " " << p.t();
     return out;
 }
+
+class OutputResults
+{
+public:
+    virtual void set(const RUMBA::Point<double> & p, const int value, const int optindex=INT_MAX) = 0;
+    virtual ~OutputResults(){};
+};
+
+class OutputASCII: public OutputResults
+{
+private:
+    std::ostream& out;
+
+public:
+    OutputASCII(std::ostream& lout)
+        : out(lout) {}
+
+    void set(const RUMBA::Point<double> & p, const int value, const int optindex=INT_MAX)
+        {
+            printpoint(p,out);
+            if (optindex != INT_MAX) out << " " << optindex;
+            out << " " << value << std::endl;
+        }
+
+};
+
+class OutputNifti: public OutputResults
+{
+private:
+    int ex, ey, ez, et,			// helpers to compute coordinates  out of offset
+        ox,
+        dx, dy, dz, dt;
+    double mx, my, mz, mt;
+    datatype * data;
+
+protected:
+    const std::string outfile;
+    nifti_image * ni;
+    bool  voxelspace;
+
+public:
+    OutputNifti(const std::string loutfile, const std::string origfile)
+        : outfile(loutfile)
+        {
+            // XXX should not actually read all the data from origfile
+            //     but let it be like that for now
+            ni = nifti_image_read(origfile.c_str(), true);
+            data = (datatype *) ni->data;
+            // zero it out -- lets do old fashion
+            std::fill( data, data + ni->nvox, (datatype)0x0 );
+            // set proper output filename
+            nifti_set_filenames(ni, loutfile.c_str(), 0, ni->byteorder);
+
+            // Lazy me to create a proper wrapper for NiftiImage class in C++
+            ox = ni->nbyper;
+            ex = ni->nx*ox; dx=1;
+            ey = ni->nx*ni->ny*ox; dy=ni->nx;
+            ez = ni->nx*ni->ny*ox*ni->nz; dz=ni->nx*ni->ny;
+            et = ni->nx*ni->ny*ox*ni->nz*ni->nt; dt=ni->nx*ni->ny*ni->nz;
+
+            setVoxelSpace(false);
+        }
+
+    ~OutputNifti()
+        {
+            std::cerr << "Saving results into " << ni->fname << std::endl;
+            nifti_image_write(ni);
+        }
+
+    void setVoxelSpace(bool isInVoxelSpace=true)
+        {
+            voxelspace = isInVoxelSpace;
+            if (voxelspace)
+            {
+                mx = my = mz = mt = 1;
+            }
+            else
+            {
+                mx = ni->dx;
+                my = ni->dy;
+                mz = ni->dz;
+                mt = ni->dt;
+            }
+        }
+
+    void set(const RUMBA::Point<double> & p, const int value, const int optindex=INT_MAX)
+    // Obtains voxel or space coordinates and saves into the ni->data
+        {
+            int x, y, z, t, offset;
+            // convert to voxel space
+            x = (int) round(p.x()/mx);
+            y = (int) round(p.y()/my);
+            z = (int) round(p.z()/mz);
+            t = (int) round(p.t()/mt);
+            // compute offset
+            offset =  dx*x + dy*y + dz*z + dt*t;
+            data[offset] = value;
+        }
+};
+
 
 int countmembers ( std::vector<int> dense_points, int threshold)
 {
@@ -281,12 +383,12 @@ std::vector<point_t> loadniftifile(std::string infile,
     int ex, ey, ez, et,			// helpers to compute coordinates  out of offset
         ox,
         dx, dy, dz, dt;
-    float * data = NULL;
+    datatype * data = NULL;
 
     switch (ni->datatype)
     {
     case DT_FLOAT32:
-        data = static_cast<float*>(ni->data);
+        data = static_cast<datatype*>(ni->data);
         break;
     default:
         throw RUMBA::Exception ("We do not yet handle datatype of the file " + infile +
@@ -294,13 +396,13 @@ std::vector<point_t> loadniftifile(std::string infile,
     }
 
     // Precompute offsets
-    ox = ni->nbyper;
+    ox = 1; //ni->nbyper;
     ex = ni->nx*ox; dx=1;
     ey = ni->nx*ni->ny*ox; dy=ni->nx;
     ez = ni->nx*ni->ny*ox*ni->nz; dz=ni->nx*ni->ny;
     et = ni->nx*ni->ny*ox*ni->nz*ni->nt; dt=ni->nx*ni->ny*ni->nz;
 
-    std::cerr << "Reading file " << infile;
+    std::cerr << "Reading file " << infile << std::endl;
     // Lets loop through all voxels in that "Volume"
     for (long long int offset=0;
          offset< ni->nvox;
@@ -319,8 +421,8 @@ std::vector<point_t> loadniftifile(std::string infile,
             z *= ni->dz;
             t *= ni->dt;
         }
-        std::cerr << "Adding point " << data[offset] << " = " 
-                  << x << "," << y << "," << z << "," << t << std::endl;
+        //std::cerr << "Adding point " << data[offset] << " = " 
+        //          << x << "," << y << "," << z << "," << t << std::endl;
         result.push_back(point_t(x, y, z));
     }
     std::cerr << "Found " << result.size() << " points" << std::endl;
@@ -537,7 +639,7 @@ int main(int argc, char** argv)
     bool show_nonmembers = false;
     std::string infile, outfile;
 
-    std::ostream * out = 0;
+    OutputResults * out = NULL;
     std::ofstream fout;
     double between = 0;
     double * between_ptr = 0;
@@ -626,25 +728,34 @@ int main(int argc, char** argv)
             allpoints = loadfile (std::cin);
         }
 
+
         if (argh.arg("outfile"))
         {
             argh.arg("outfile", outfile);
-            fout.open(outfile.c_str());
-            if (!fout)
-                throw RUMBA::Exception("Couldn't open output file for writing");
-            out = &fout;
+
+            if (operatenifti)
+            {
+                out = new OutputNifti(outfile, infile);
+            }
+            else
+            {
+                fout.open(outfile.c_str());
+                if (!fout)
+                    throw RUMBA::Exception("Couldn't open output file for writing");
+                out = new OutputASCII(fout);
+            }
         }
         else
-            out = &std::cout;
+            out = new OutputASCII(std::cout);
 
 
 
-//        if (argh.arg("bucket"))
+        // if (argh.arg("bucket"))
         if (argh.arg("nnbetween"))
             between_ptr = &between;
 
-        //std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
-// special case: only return dense points, don't cluster
+
+        // special case: only return dense points, don't cluster
         if (argh.arg("densepoints")) {
             std::cerr << "Calling find_dense_points" << std::endl;
             find_dense_points(allpoints, radius,threshold, dense_points,
@@ -654,7 +765,8 @@ int main(int argc, char** argv)
             for (uint i = 0; i < dense_points.size(); ++i)
             {
                 if (dense_points[i] >= threshold)
-                    printpoint(allpoints[i],*out) << " " << 1 << std::endl;
+                    out->set(allpoints[i], 1);
+                //printpoint(allpoints[i],*out) << " " << 1 << std::endl;
             }
         }
         else
@@ -663,7 +775,8 @@ int main(int argc, char** argv)
             clusters = cluster2(
                 allpoints, euclidean3, threshold,
 //                0.01, radius, radius/10.0 , dense_points, dense_point_neighbours, between_ptr);
-                startradius, radius, step , dense_points, dense_point_neighbours, between_ptr, merge_on_introduction, merge_rule, &cluster_sizes);
+                startradius, radius, step , dense_points, dense_point_neighbours, between_ptr,
+                merge_on_introduction, merge_rule, &cluster_sizes);
             std::cerr << "done calling cluster2() with " << clusters.size() << " clusters found." << std::endl;
         }
 
@@ -672,24 +785,18 @@ int main(int argc, char** argv)
             for (uint i = 0; i < dense_points.size(); ++i)
             {
                 if (dense_points[i] < threshold)
-                    printpoint(allpoints[i],*out) << " " << 0 << std::endl;
+                    out->set(allpoints[i], 0);
+                //printpoint(allpoints[i],*out) << " " << 0 << std::endl;
             }
         }
 
         for (uint i = 0; i < clusters.size(); ++i )
         {
-            /*
-            out << "[";
-            for (int j = 0; j < clusters[i].size(); ++j)
-            {
-                out << allpoints[clusters[i][j]] << ", ";
-            }
-            out << "]" << std::endl;
-            */
             for (uint j = 0; j < clusters[i].size(); ++j )
             {
-                printpoint(allpoints[clusters[i][j]],*out)
-                    << " " << j << " " << i+1 << std::endl;
+                out->set(allpoints[clusters[i][j]], i+1, j);
+                //printpoint(allpoints[clusters[i][j]],*out)
+                //    << " " << j << " " << i+1 << std::endl;
             }
         }
 
@@ -733,6 +840,7 @@ int main(int argc, char** argv)
         help(argv[0]);
         return 1;
     }
+    delete out;
     return 0;
 }
 
