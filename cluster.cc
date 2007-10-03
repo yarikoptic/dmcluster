@@ -67,8 +67,24 @@ public:
 };
 
 
+// should be used everywhere
 VerboseOutput vout(std::cerr, 1);
 
+template <typename T>
+void setarg(RUMBA::ArgHandler & argh,
+            const char * name,
+            T & variable,
+            const bool printdefault=false)
+{
+    if (argh.arg(name))
+        {
+            argh.arg(name, variable);
+            vout << 3 << "i: " << name << " is set to " << variable << "\n";
+        }
+    else if (printdefault)
+        vout << 2 << "!: no value for parameter " << name 
+             << " was specified. Assuming default value " << variable << "\n";
+}
 
 bool mycomp(const std::pair<int,double>& left, const std::pair<int,double>& right)
 {
@@ -697,10 +713,10 @@ int main(int argc, char** argv)
     double radius = 5.0;
     int threshold = 10;
     double valuesthreshold = 2.3;
-    bool voxelspace = false;    // by default -- operate in mm
+    int voxelspace = false;    // by default -- operate in mm
     bool operatenifti = false;  // by default operate with ascii and stdin/stdout
 
-    bool show_nonmembers = false;
+    int show_nonmembers = false;
     std::string infile, outfile;
 
     OutputResults * out = NULL;
@@ -733,7 +749,7 @@ int main(int argc, char** argv)
 
         if (argh.arg("step"))
         {
-            argh.arg("step",step);
+            setarg(argh, "step", step);
             if (step <= 0)
                 throw RUMBA::Exception ("Step size must be positive");
             merge_on_introduction = true;
@@ -742,56 +758,33 @@ int main(int argc, char** argv)
             merge_rule = RJ_MERGE;
 
 
-        if (argh.arg("radius"))
-            argh.arg("radius", radius);
-        else
-            vout << 1
-                 << "No radius parameter is specified. Assuming default radius = "
-                 << radius << "\n";
-            // throw RUMBA::Exception("--radius|-r required");
+        setarg(argh, "radius", radius, true);
 
         if (argh.arg("startradius"))
         {
-            argh.arg("startradius", startradius);
-            vout << 3 << "i: startradius is set to " << startradius << "\n";
-             if (startradius <= 0 || startradius > radius)
+            setarg(argh, "startradius", startradius);
+            if (startradius <= 0 || startradius > radius)
                 throw RUMBA::Exception ("start radius must be positive and less than radius");
-            if (!argh.arg("step"))
-                vout << 4 << "No step parameter provided. Assuming 1/10th of the range\n";
-                step = (radius-startradius)/10;
+
+            step = (radius-startradius)/10;
+            setarg(argh, "step", step, true);
         }
 
-        if (argh.arg("threshold"))
-        {
-            argh.arg("threshold",threshold);
-            vout << 3 << "i: threshold is set to " << threshold << "\n";
-        }
-        else
-            vout << 1
-                 << "No threshold parameter is specified. Assuming default threshold = "
-                 << threshold << "\n";
+        setarg(argh, "threshold", threshold, true);
         //throw RUMBA::Exception("--threshold|-t required");
 
         if (argh.arg("infile"))
         {
-            if (argh.arg("valuesthreshold"))
-            {
-                argh.arg("valuesthreshold", valuesthreshold);
-                vout << 3 << "i: valuesthreshold is set to " << valuesthreshold << "\n";
-            }
-            else
-                vout << 1
-                    << "No valuesthreshold parameter is specified. Assuming default value = "
-                    << valuesthreshold << "\n";
-            voxelspace = argh.arg("voxelspace");
+            setarg(argh, "valuesthreshold", valuesthreshold, true);
+            setarg(argh, "voxelspace", voxelspace, true);
+            //voxelspace = argh.arg("voxelspace");
         }
 
         if (threshold < 1)
             throw RUMBA::Exception
                 ("--threshold argument must be a positive integer");
 
-        if (argh.arg("nonmembers"))
-            show_nonmembers = true;
+        setarg(argh, "nonmembers", show_nonmembers, true);
 
         std::vector<point_t> allpoints;
         std::vector<int> dense_points;
