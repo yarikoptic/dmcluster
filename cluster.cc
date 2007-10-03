@@ -746,6 +746,7 @@ int main(int argc, char** argv)
             if (operatenifti)
             {
                 out = new OutputNifti(outfile, infile);
+                dynamic_cast<OutputNifti*>(out)->setVoxelSpace(voxelspace);
             }
             else
             {
@@ -787,7 +788,7 @@ int main(int argc, char** argv)
 //                0.01, radius, radius/10.0 , dense_points, dense_point_neighbours, between_ptr);
                 startradius, radius, step , dense_points, dense_point_neighbours, between_ptr,
                 merge_on_introduction, merge_rule, &cluster_sizes);
-            std::cerr << "done calling cluster2() with " << clusters.size() << " clusters found." << std::endl;
+            std::cerr << "cluster2() has completed with " << clusters.size() << " clusters found." << std::endl;
         }
 
         if (show_nonmembers)
@@ -795,7 +796,7 @@ int main(int argc, char** argv)
             for (uint i = 0; i < dense_points.size(); ++i)
             {
                 if (dense_points[i] < threshold)
-                    out->set(allpoints[i], 0);
+                    out->set(allpoints[i], clusters.size()+1);
                 //printpoint(allpoints[i],*out) << " " << 0 << std::endl;
             }
         }
@@ -804,6 +805,7 @@ int main(int argc, char** argv)
         {
             for (uint j = 0; j < clusters[i].size(); ++j )
             {
+                // j is disregarded in nifti file output
                 out->set(allpoints[clusters[i][j]], i+1, j);
                 //printpoint(allpoints[clusters[i][j]],*out)
                 //    << " " << j << " " << i+1 << std::endl;
@@ -817,21 +819,21 @@ int main(int argc, char** argv)
 
         if (argh.arg("density"))
         {
-            std::cout <<
-                density_ratio(dense_points,threshold)
-                << std::endl;
+            std::cout << density_ratio(dense_points,threshold)
+                      << std::endl;
         }
 
         if (argh.arg("variance"))
         {
             if (between_ptr)
             {
-                std::cout << getVarwithin(clusters,allpoints,dense_point_neighbours) / between << std::endl;
+                std::cout << getVarwithin(clusters,allpoints,dense_point_neighbours) / between
+                          << std::endl;
             }
             else
             {
                 std::cout << dovariance(clusters,allpoints, dense_point_neighbours)
-                << std::endl;
+                          << std::endl;
             }
         }
         if (argh.arg("startradius"))
