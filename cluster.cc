@@ -13,7 +13,7 @@
 
 #include <nifti1_io.h>
 
-std::string version = "0.0.1";
+std::string version = "0.1.0";
 
 typedef float datatype;
 
@@ -31,6 +31,9 @@ std::ostream& printpoint(const RUMBA::Point<double> & p, std::ostream& out)
     return out;
 }
 
+// Classes to provide easy choice of output -- either in ASCII (stdout/file), where 
+// simply coordinates are printed, or into brain image volume (analyze,nifti) via libnifti
+// where cluster indexes are labeled by class number
 class OutputResults
 {
 public:
@@ -608,21 +611,28 @@ RUMBA::Argument myArgs [] =
 
 void help(const char* progname)
 {
-    std::cerr << "Usage: " << progname << std::endl <<
-        " [-i|--infile <file> [--valuesthreshold|-V <value>] [--voxelspace]] [-o|--outfile <file>]" << std::endl <<
-        " [-r|--radius <radius>] [-t|--threshold <N>] [-n|--nonmembers]" << std::endl <<
-        " [-b|--bucket] [--density|-d]" << std::endl <<
-        " [--rjmerge] [--variance] [--nnbetween] [--rescale] ] [--densepoints]" << std::endl;
-    std::cerr << "Description of the options:" << std::endl <<
-        "  voxelspace: operate on voxel coordinates, not in mm's" << std::endl <<
-        "  densepoints: only output list of dense points, don't cluster" << std::endl <<
-        "  nonmembers: show points that don't meet density threshold" << std::endl <<
-        "              (these are assigned to \"cluster 0\")" << std::endl <<
-        "  variance: show the sum mean squared between clusters divided" << std::endl <<
-        "              by mean squared between centroids" << std::endl <<
-        "  nnbetween: similar to variance, but use nearest neighbor distance" << std::endl <<
-        "              between clusters instead of centroid distance (recommended)" << std::endl <<
-        "Note that density is output before variance if both args are given" << std::endl;
+    std::cerr <<
+        "Dense Mode Clustering. Version " << version << std::endl <<
+        "Usage:\n" << progname <<
+        " [-i|--infile <file>] [-o|--outfile <file>]\n" <<
+        " [-r|--radius <radius>] [-t|--threshold <N>]\n" <<
+        " [-b|--bucket] [--density|-d] [--rjmerge] [--rescale] ]\n" <<
+        " [<additional options>]\n" <<
+        std::endl <<
+        "Options available when working with brain volumes:\n" <<
+        "  [--voxelspace]: operate on voxel coordinates, not in mm's\n" <<
+        "  [--valuesthreshold|-V <value>]: value to threshold at. Can be\n" <<
+        "     negative to select negative (only) voxels\n" <<
+        std::endl <<
+        "Additional common options:\n" <<
+        "  [--densepoints]: only output list of dense points, don't cluster\n" <<
+        "  [-n|--nonmembers]: show points that don't meet density threshold\n" <<
+        "     (these are assigned to \"cluster <numberofclusters+1>\")\n" <<
+        "  [--variance]: show the sum mean squared between clusters divided\n" <<
+        "     by mean squared between centroids\n" <<
+        "  [--nnbetween]: similar to variance, but use nearest neighbor distance\n" <<
+        "     between clusters instead of centroid distance (recommended)\n" <<
+        "\nNote that density is output before variance if both args are given\n";
 }
 
 
