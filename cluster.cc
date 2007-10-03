@@ -1,5 +1,6 @@
 
 #include <fstream>
+#include <iostream>
 #include <sstream>
 #include <string>
 #include <limits>
@@ -18,6 +19,55 @@ std::string version = "0.1.0";
 typedef float datatype;
 
 inline double square(double x) { return x*x; }
+
+class VerboseOutputWorker
+{
+private:
+    std::ostream & out;
+    const bool doout;
+public:
+    VerboseOutputWorker(std::ostream & lout, const bool ldoout=true)
+        :out(lout), doout(ldoout){}
+
+    template <class T>
+    VerboseOutputWorker& operator << (const T smth)
+    {
+        if (doout) out << smth;
+        return *this;
+    }
+
+};
+
+class VerboseOutput
+{
+private:
+    VerboseOutputWorker doout, noout;
+    int level;
+public:
+    VerboseOutput(std::ostream & lout,
+                  const int llevel=1)
+        : doout(lout, true)
+        , noout(lout, false)
+        {
+            setLevel(llevel);
+        }
+
+    void setLevel(const int llevel) { level = llevel; }
+
+    VerboseOutputWorker& operator << (const int clevel)
+    {
+        // I am stupid... could not figure out cleaner way... pardon me
+        if (clevel <= level)
+        {
+            for (int i=0; i<clevel-1; i++) doout << " ";
+            return doout;
+        }
+        else                 return noout;
+    }
+};
+
+
+VerboseOutput vout(std::cerr, 1);
 
 
 bool mycomp(const std::pair<int,double>& left, const std::pair<int,double>& right)
@@ -98,7 +148,7 @@ public:
 
     ~OutputNifti()
         {
-            std::cerr << "Saving results into " << ni->fname << std::endl;
+            vout << 1 << "Saving results into " << ni->fname << "\n";
             nifti_image_write(ni);
         }
 
@@ -405,7 +455,7 @@ std::vector<point_t> loadniftifile(std::string infile,
     ez = ni->nx*ni->ny*ox*ni->nz; dz=ni->nx*ni->ny;
     et = ni->nx*ni->ny*ox*ni->nz*ni->nt; dt=ni->nx*ni->ny*ni->nz;
 
-    std::cerr << "Reading file " << infile << std::endl;
+    vout << 2 << "Reading file " << infile << "\n";
     // Lets loop through all voxels in that "Volume"
     for (long long int offset=0;
          offset< ni->nvox;
@@ -424,11 +474,11 @@ std::vector<point_t> loadniftifile(std::string infile,
             z *= ni->dz;
             t *= ni->dt;
         }
-        //std::cerr << "Adding point " << data[offset] << " = " 
-        //          << x << "," << y << "," << z << "," << t << std::endl;
+        vout << 4 << "Adding point " << data[offset] << " = "
+             << x << "," << y << "," << z << "," << t << "\n";
         result.push_back(point_t(x, y, z));
     }
-    std::cerr << "Found " << result.size() << " points" << std::endl;
+    vout << 2 << "Found " << result.size() << " points" << "\n";
     return result;
 }
 
@@ -591,7 +641,9 @@ double euclidean3(const RUMBA::Point<double>& p, const RUMBA::Point<double>&q)
 
 RUMBA::Argument myArgs [] =
 {
-    RUMBA::Argument ("infile",RUMBA::ALPHA,'i'),
+    RUMBA::Argument ( "infile",RUMBA::ALPHA,'i'),
+    RUMBA::Argument ( "verbose", RUMBA::NUMERIC, 'v' ),
+    RUMBA::Argument ( "quiet", RUMBA::FLAG, 'q' ),
     RUMBA::Argument ( "valuesthreshold", RUMBA::NUMERIC, 'T' ),
     RUMBA::Argument ( "radius", RUMBA::NUMERIC, 'r' ),
     RUMBA::Argument ( "threshold", RUMBA::NUMERIC, 't' ),
@@ -625,6 +677,8 @@ void help(const char* progname)
         "     negative to select negative (only) voxels\n" <<
         std::endl <<
         "Additional common options:\n" <<
+        "  [--verbose <level>]: how verbose output should be (default 1)\n" <<
+        "  [--quiet|-q]: analog to --verbose 0\n" <<
         "  [--densepoints]: only output list of dense points, don't cluster\n" <<
         "  [-n|--nonmembers]: show points that don't meet density threshold\n" <<
         "     (these are assigned to \"cluster <numberofclusters+1>\")\n" <<
@@ -658,7 +712,6 @@ int main(int argc, char** argv)
     double startradius = 0.01;
     std::vector<int> cluster_sizes; // number of clusters in the solution for
     // each value of the R parameter
-
     enum merge_rule_t merge_rule = NN_MERGE;
     try {
         RUMBA::ArgHandler argh(argc,argv,myArgs);
@@ -667,6 +720,17 @@ int main(int argc, char** argv)
             help(argv[0]);
             return 0;
         }
+
+        if (argh.arg("verbose"))
+        {
+            int verbosity;
+            argh.arg("verbose", verbosity);
+            vout.setLevel(verbosity);
+        }
+
+        if (argh.arg("quiet"))
+            vout.setLevel(0);
+
         if (argh.arg("step"))
         {
             argh.arg("step",step);
@@ -681,36 +745,44 @@ int main(int argc, char** argv)
         if (argh.arg("radius"))
             argh.arg("radius", radius);
         else
-            std::cerr
-                << "No radius parameter is specified. Assuming default radius = "
-                << radius << std::endl;
+            vout << 1
+                 << "No radius parameter is specified. Assuming default radius = "
+                 << radius << "\n";
             // throw RUMBA::Exception("--radius|-r required");
 
         if (argh.arg("startradius"))
         {
             argh.arg("startradius", startradius);
-            if (startradius <= 0 || startradius > radius)
+            vout << 3 << "i: startradius is set to " << startradius << "\n";
+             if (startradius <= 0 || startradius > radius)
                 throw RUMBA::Exception ("start radius must be positive and less than radius");
             if (!argh.arg("step"))
+                vout << 4 << "No step parameter provided. Assuming 1/10th of the range\n";
                 step = (radius-startradius)/10;
         }
 
         if (argh.arg("threshold"))
+        {
             argh.arg("threshold",threshold);
+            vout << 3 << "i: threshold is set to " << threshold << "\n";
+        }
         else
-            std::cerr
-                << "No threshold parameter is specified. Assuming default threshold = "
-                << threshold << std::endl;
+            vout << 1
+                 << "No threshold parameter is specified. Assuming default threshold = "
+                 << threshold << "\n";
         //throw RUMBA::Exception("--threshold|-t required");
 
         if (argh.arg("infile"))
         {
             if (argh.arg("valuesthreshold"))
+            {
                 argh.arg("valuesthreshold", valuesthreshold);
+                vout << 3 << "i: valuesthreshold is set to " << valuesthreshold << "\n";
+            }
             else
-                std::cerr
+                vout << 1
                     << "No valuesthreshold parameter is specified. Assuming default value = "
-                    << valuesthreshold << std::endl;
+                    << valuesthreshold << "\n";
             voxelspace = argh.arg("voxelspace");
         }
 
@@ -726,6 +798,8 @@ int main(int argc, char** argv)
         std::map<int, std::vector<int> > dense_point_neighbours;
         clusterlist_t clusters;
 
+        vout << 1 << "Loading data " << "\n";
+
         if (argh.arg("infile"))
         {
             argh.arg("infile", infile);
@@ -738,6 +812,7 @@ int main(int argc, char** argv)
             allpoints = loadfile (std::cin);
         }
 
+        vout << 1 << "Setting up output\n";
 
         if (argh.arg("outfile"))
         {
@@ -765,14 +840,15 @@ int main(int argc, char** argv)
         if (argh.arg("nnbetween"))
             between_ptr = &between;
 
+        vout << 1 << "Processing\n";
 
         // special case: only return dense points, don't cluster
         if (argh.arg("densepoints")) {
-            std::cerr << "Calling find_dense_points" << std::endl;
+            vout << 3 << "Calling find_dense_points" << "\n";
             find_dense_points(allpoints, radius,threshold, dense_points,
                     dense_point_neighbours);
             // now print 'em out ...
-            std::cerr << dense_points.size() << std::endl;
+            vout << 2 << "Dense points size = " << dense_points.size() << "\n";
             for (uint i = 0; i < dense_points.size(); ++i)
             {
                 if (dense_points[i] >= threshold)
@@ -782,17 +858,18 @@ int main(int argc, char** argv)
         }
         else
         {
-            std::cerr << "Calling cluster2() " << std::endl;
+            vout << 3 << "Calling cluster2() " << "\n";
             clusters = cluster2(
                 allpoints, euclidean3, threshold,
 //                0.01, radius, radius/10.0 , dense_points, dense_point_neighbours, between_ptr);
                 startradius, radius, step , dense_points, dense_point_neighbours, between_ptr,
                 merge_on_introduction, merge_rule, &cluster_sizes);
-            std::cerr << "cluster2() has completed with " << clusters.size() << " clusters found." << std::endl;
+            vout << 3 << "cluster2() has completed with " << clusters.size() << " clusters found." << "\n";
         }
 
         if (show_nonmembers)
         {
+            vout << 3 << "Output non-members\n";
             for (uint i = 0; i < dense_points.size(); ++i)
             {
                 if (dense_points[i] < threshold)
@@ -801,6 +878,7 @@ int main(int argc, char** argv)
             }
         }
 
+        vout << 3 << "Output clusters\n";
         for (uint i = 0; i < clusters.size(); ++i )
         {
             for (uint j = 0; j < clusters[i].size(); ++j )
@@ -815,16 +893,19 @@ int main(int argc, char** argv)
 
         int num_members_rescale = 1;
         if (argh.arg("rescale"))
+            vout << 3 << "Rescaling\n";
             num_members_rescale = countmembers(dense_points,threshold);
 
         if (argh.arg("density"))
         {
+            vout << 2 << "Output density\n";
             std::cout << density_ratio(dense_points,threshold)
                       << std::endl;
         }
 
         if (argh.arg("variance"))
         {
+            vout << 3 << "Output variance\n";
             if (between_ptr)
             {
                 std::cout << getVarwithin(clusters,allpoints,dense_point_neighbours) / between
@@ -836,6 +917,7 @@ int main(int argc, char** argv)
                           << std::endl;
             }
         }
+
         if (argh.arg("startradius"))
         {
             double rtmp = startradius;
@@ -848,7 +930,7 @@ int main(int argc, char** argv)
     }
     catch(RUMBA::Exception& e)
     {
-        std::cerr << e.error() << std::endl;
+        vout << 0 << e.error() << "\n";
         help(argv[0]);
         return 1;
     }
