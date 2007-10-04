@@ -172,7 +172,7 @@ clusterlist_t cluster2
         if (cluster_sizes)
             cluster_sizes->push_back ( clusters.size());
         R += R_step;
-        std::cerr << R << " " << clusters.size() << std::endl;
+        //std::cerr << R << " " << clusters.size() << std::endl;
     } while (R < R_end && R_step > 0);
     
     for (int i = 0; i < N; ++i)
