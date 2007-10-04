@@ -14,7 +14,7 @@
 
 #include <nifti1_io.h>
 
-std::string version = "0.1.0";
+std::string version = "0.1.1-pre1";
 
 typedef float datatype;
 
@@ -802,6 +802,7 @@ int main(int argc, char** argv)
         else
         {
             // Read ASCII input from stdin
+            vout << 2 << "Reading coordinates from standard input (in ASCII form)\n";
             allpoints = loadfile (std::cin);
         }
 
