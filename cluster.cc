@@ -7,6 +7,7 @@
 #include "cluster.h"
 #include "density.h"
 #include "rumba/arghandler.h"
+#include "verbose.h"
 
 #include <algorithm>
 #include <cmath>
@@ -14,61 +15,12 @@
 
 #include <nifti1_io.h>
 
-std::string version = "0.1.0";
+std::string version = "0.1.1";
 
 typedef float datatype;
 
 inline double square(double x) { return x*x; }
 
-class VerboseOutputWorker
-{
-private:
-    std::ostream & out;
-    const bool doout;
-public:
-    VerboseOutputWorker(std::ostream & lout, const bool ldoout=true)
-        :out(lout), doout(ldoout){}
-
-    template <class T>
-    VerboseOutputWorker& operator << (const T smth)
-    {
-        if (doout) out << smth;
-        return *this;
-    }
-
-};
-
-class VerboseOutput
-{
-private:
-    VerboseOutputWorker doout, noout;
-    int level;
-public:
-    VerboseOutput(std::ostream & lout,
-                  const int llevel=1)
-        : doout(lout, true)
-        , noout(lout, false)
-        {
-            setLevel(llevel);
-        }
-
-    void setLevel(const int llevel) { level = llevel; }
-
-    VerboseOutputWorker& operator << (const int clevel)
-    {
-        // I am stupid... could not figure out cleaner way... pardon me
-        if (clevel <= level)
-        {
-            for (int i=0; i<clevel-1; i++) doout << " ";
-            return doout;
-        }
-        else                 return noout;
-    }
-};
-
-
-// should be used everywhere
-VerboseOutput vout(std::cerr, 1);
 
 template <typename T>
 void setarg(RUMBA::ArgHandler & argh,
@@ -802,6 +754,7 @@ int main(int argc, char** argv)
         else
         {
             // Read ASCII input from stdin
+            vout << 2 << "Reading coordinates from standard input (in ASCII form)\n";
             allpoints = loadfile (std::cin);
         }
 
