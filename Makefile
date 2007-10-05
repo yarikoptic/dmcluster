@@ -1,6 +1,6 @@
 OBJS=$(patsubst %.cc,%.o, $(wildcard *.cc) )
 
-CXXFLAGS=-g -Wall -Ibase/ -I /usr/include/nifti
+CXXFLAGS=-O3 -g -Wall -Ibase/ -I /usr/include/nifti
 LD_FLAGS+=-lniftiio
 
 all: $(OBJS) base

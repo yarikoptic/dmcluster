@@ -790,17 +790,22 @@ int main(int argc, char** argv)
 
         // special case: only return dense points, don't cluster
         if (argh.arg("densepoints")) {
+            uint actual_dense_points = 0;
             vout << 3 << "Calling find_dense_points" << "\n";
             find_dense_points(allpoints, radius,threshold, dense_points,
                     dense_point_neighbours);
             // now print 'em out ...
-            vout << 2 << "Dense points size = " << dense_points.size() << "\n";
+            vout << 2 << "Total number of points = " << dense_points.size() << "\n";
             for (uint i = 0; i < dense_points.size(); ++i)
             {
                 if (dense_points[i] >= threshold)
+                {
                     out->set(allpoints[i], 1);
+                    actual_dense_points++;
+                }
                 //printpoint(allpoints[i],*out) << " " << 1 << std::endl;
             }
+            vout << 2 << "Number of dense points = " << actual_dense_points << "\n";
         }
         else
         {

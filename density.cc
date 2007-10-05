@@ -207,6 +207,7 @@ void find_dense_points(
         if (dense_points[i]<threshold)
         {
             dense_points[i] = density(i,R,D,nearby_points);
+            vout << 6 << "Point " << i << " density = " << dense_points[i] << "\n"; 
 //            nearby_points takes up a lot of space unless we use it on a
 //            per-cluster basis ... maybe we should keep a list of all nearby
 //            points as opposed to one per-dense point.
