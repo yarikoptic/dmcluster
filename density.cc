@@ -56,10 +56,15 @@ bucket_distance_function::bucket_distance_function
 
 RUMBA::Point<int> getBucket ( const RUMBA::Point<double> & p, double R)
 {
+#if 0
+    int x = static_cast<int> (round(p.x()/R));
+    int y = static_cast<int> (round(p.y()/R));
+    int z = static_cast<int> (round(p.z()/R));
+#else
     int x = static_cast<int> (p.x()/R);
     int y = static_cast<int> (p.y()/R);
     int z = static_cast<int> (p.z()/R);
-
+#endif
     return RUMBA::Point<int> (x,y,z,0);
 }
 
@@ -73,7 +78,7 @@ bucketmap_t bucket (double R,
     RUMBA::Point<int> thebucket;
     std::set<int> emptyset;
 
-    for (int i = 0; i < allpoints.size(); ++i)
+    for (uint i = 0; i < allpoints.size(); ++i)
     {
         thebucket = getBucket(allpoints[i], R);
         bucketmap_const_iterator tmp = result.find(thebucket);
@@ -113,6 +118,11 @@ std::vector<int> & nearby_points
                             ++it)
                     {
                         assert (*it < f.allpoints.size() && *it >= 0);
+#ifdef VERBOSE_DETAILED
+                        vout << 106
+//                             << "Comparing " << f <<" and " << f.allpoints[*it] << "\n";
+                             << "Comparing " << 1 <<" and " << 2 << "\n";
+#endif
                         if (f(p, f.allpoints[*it]) <= R)
                         {
                             ++count;
