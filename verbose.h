@@ -38,6 +38,10 @@
 #ifndef VERBOSE_H
 #define VERBOSE_H
 
+// Either to compile verbose detailed output (verbose printouts specific
+// for some part of the code
+#define VERBOSE_DETAILED
+
 #include <iostream>
 
 class VerboseOutputWorker
@@ -58,6 +62,10 @@ public:
 
 };
 
+/*
+  Reserved detailed levels of verbose output
+   106 -- bucket creation
+ */
 class VerboseOutput
 {
 private:
@@ -77,9 +85,13 @@ public:
     VerboseOutputWorker& operator << (const int clevel)
     {
         // I am stupid... could not figure out cleaner way... pardon me
-        if (clevel <= level)
+		// detailed levels start > 10. Then we output only debugs
+		//  on levels up to 4 and then that specific detailed level.
+        if ((level <= 10 && clevel <= level)					\
+			|| (level > 10 && (clevel == level || clevel<=4)))
         {
-            for (int i=0; i<clevel-1; i++) doout << " ";
+			uint indent = (clevel<=10?clevel-1:10);
+            for (int i=0; i<indent; i++) doout << " ";
             return doout;
         }
         else                 return noout;
