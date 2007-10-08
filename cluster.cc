@@ -15,7 +15,7 @@
 
 #include <nifti1_io.h>
 
-std::string version = "0.1.1";
+std::string version = "0.1.2";
 
 typedef float datatype;
 
@@ -366,26 +366,24 @@ point_t  readpoint(const std::string& s)
     strin >> p.y();
     strin >> p.z();
     strin >> p.t();
+    VDOUT(91, "point "<<p<<"\n");
     return p;
 }
 
 // return a list of points, allpoints
 std::vector<point_t> loadfile(std::istream & in)
 {
-    std::istringstream strin;
     std::string s;
-    std::vector<std::string> lines;
     std::vector<point_t> result;
 
     while (std::getline(in,s))
+    {
+        VDOUT(91, "Line " << s << "\n");
         if (s.length()>100)
             throw RUMBA::Exception (
                 "Input line is too big (longer than 100 chars). It must be a binary file");
-        lines.push_back(s);
-
-    for (uint i = 0; i < lines.size(); ++i)
-        result.push_back(readpoint(lines[i]));
-
+        result.push_back(readpoint(s));
+    }
     return result;
 }
 
@@ -442,9 +440,9 @@ std::vector<point_t> loadniftifile(std::string infile,
             z *= ni->dz;
             t *= ni->dt;
         }
-        vout << 4 << "Adding point " << data[offset] << " = "
-             << x << "," << y << "," << z << "," << t << "\n";
-        result.push_back(point_t(x, y, z));
+        point_t p(x, y, z);
+        VDOUT(91, "Adding point " << data[offset] << " = " << p << "\n");
+        result.push_back(p);
     }
     vout << 2 << "Found " << result.size() << " points" << "\n";
     return result;
@@ -721,6 +719,11 @@ int main(int argc, char** argv)
             step = (radius-startradius)/10;
             setarg(argh, "step", step, true);
         }
+        else
+        {   // There is no sense to keep default value.
+            vout << 3 << "i: startradius assigned radius value since no startradius is given\n";
+            startradius = radius;
+        }
 
         setarg(argh, "threshold", threshold, true);
         //throw RUMBA::Exception("--threshold|-t required");
@@ -790,24 +793,29 @@ int main(int argc, char** argv)
 
         // special case: only return dense points, don't cluster
         if (argh.arg("densepoints")) {
+            uint actual_dense_points = 0;
             vout << 3 << "Calling find_dense_points" << "\n";
             find_dense_points(allpoints, radius,threshold, dense_points,
                     dense_point_neighbours);
             // now print 'em out ...
-            vout << 2 << "Dense points size = " << dense_points.size() << "\n";
+            vout << 2 << "Total number of points = " << dense_points.size() << "\n";
             for (uint i = 0; i < dense_points.size(); ++i)
             {
                 if (dense_points[i] >= threshold)
-                    out->set(allpoints[i], 1);
+                {
+                    out->set(allpoints[i], 1); //dense_points[i]);
+                    actual_dense_points++;
+                }
                 //printpoint(allpoints[i],*out) << " " << 1 << std::endl;
             }
+            vout << 2 << "Number of dense points = " << actual_dense_points << "\n";
         }
         else
         {
             vout << 3 << "Calling cluster2() " << "\n";
             clusters = cluster2(
                 allpoints, euclidean3, threshold,
-//                0.01, radius, radius/10.0 , dense_points, dense_point_neighbours, between_ptr);
+
                 startradius, radius, step , dense_points, dense_point_neighbours, between_ptr,
                 merge_on_introduction, merge_rule, &cluster_sizes);
             vout << 3 << "cluster2() has completed with " << clusters.size() << " clusters found." << "\n";
@@ -850,19 +858,22 @@ int main(int argc, char** argv)
         }
 
         if (argh.arg("variance"))
-        {
-            vout << 3 << "Output variance\n";
-            if (between_ptr)
+            if (clusters.size()>0)
             {
-                std::cout << getVarwithin(clusters,allpoints,dense_point_neighbours) / between
-                          << std::endl;
+                vout << 3 << "Output variance\n";
+                if (between_ptr)
+                {
+                    std::cout << getVarwithin(clusters,allpoints,dense_point_neighbours) / between
+                              << std::endl;
+                }
+                else
+                {
+                    std::cout << dovariance(clusters,allpoints, dense_point_neighbours)
+                              << std::endl;
+                }
             }
             else
-            {
-                std::cout << dovariance(clusters,allpoints, dense_point_neighbours)
-                          << std::endl;
-            }
-        }
+                std::cout << "0\nNo clusters found. Variance cannot be computed\n";
 
         if (argh.arg("startradius"))
         {

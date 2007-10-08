@@ -56,10 +56,18 @@ bucket_distance_function::bucket_distance_function
 
 RUMBA::Point<int> getBucket ( const RUMBA::Point<double> & p, double R)
 {
+#if 0
+// apparently it doesn't matter if we simply floor or round.
+// Later on points get checked by their original coordinates
+// yoh is lost where actually we thought that there is a bug...
+    int x = static_cast<int> (round(p.x()/R));
+    int y = static_cast<int> (round(p.y()/R));
+    int z = static_cast<int> (round(p.z()/R));
+#else
     int x = static_cast<int> (p.x()/R);
     int y = static_cast<int> (p.y()/R);
     int z = static_cast<int> (p.z()/R);
-
+#endif
     return RUMBA::Point<int> (x,y,z,0);
 }
 
@@ -73,7 +81,7 @@ bucketmap_t bucket (double R,
     RUMBA::Point<int> thebucket;
     std::set<int> emptyset;
 
-    for (int i = 0; i < allpoints.size(); ++i)
+    for (uint i = 0; i < allpoints.size(); ++i)
     {
         thebucket = getBucket(allpoints[i], R);
         bucketmap_const_iterator tmp = result.find(thebucket);
@@ -97,6 +105,7 @@ std::vector<int> & nearby_points
 {
     RUMBA::Point<double> p = f.allpoints[i];
     RUMBA::Point<int> thebucket = getBucket ( p,R );
+    VDOUT(106, "Called desnity i=" << i <<" R=" << R << "\n");
 
     int count = 0;
     for (int i = thebucket.x()-1; i <= thebucket.x()+1; ++i )
@@ -113,11 +122,20 @@ std::vector<int> & nearby_points
                             ++it)
                     {
                         assert (*it < f.allpoints.size() && *it >= 0);
-                        if (f(p, f.allpoints[*it]) <= R)
+                        double d = f(p, f.allpoints[*it]);
+                        VDOUT(106, "Comparing " << p <<" and " << f.allpoints[*it]);
+
+                        if (d <= R)
                         {
+                            VDOUT(106, " + " << d << " < " << R << "\n");
                             ++count;
                             nearby_points.push_back(*it);
                         }
+                        else
+                        {
+                            VDOUT(106, " - " << d << " > " << R << "\n");
+                        }
+
                     }
                 }
            }
@@ -207,6 +225,7 @@ void find_dense_points(
         if (dense_points[i]<threshold)
         {
             dense_points[i] = density(i,R,D,nearby_points);
+            VDOUT(106, "Point " << i << " density = " << dense_points[i] << "\n");
 //            nearby_points takes up a lot of space unless we use it on a
 //            per-cluster basis ... maybe we should keep a list of all nearby
 //            points as opposed to one per-dense point.
