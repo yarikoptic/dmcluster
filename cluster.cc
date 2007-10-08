@@ -798,7 +798,7 @@ int main(int argc, char** argv)
             for (uint i = 0; i < dense_points.size(); ++i)
             {
                 if (dense_points[i] >= threshold)
-                    out->set(allpoints[i], 1);
+                    out->set(allpoints[i], dense_points[i]);
                 //printpoint(allpoints[i],*out) << " " << 1 << std::endl;
             }
         }
