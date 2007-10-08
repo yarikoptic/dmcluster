@@ -42,6 +42,14 @@
 // for some part of the code
 #define VERBOSE_DETAILED
 
+#ifdef VERBOSE_DETAILED
+#define VDOUT(lev, args...) vout << lev << args;
+#else
+#define VDOUT(lev, args...)
+#endif
+
+#define POINT_OUT(p) p.x() << ", "
+
 #include <iostream>
 
 class VerboseOutputWorker
