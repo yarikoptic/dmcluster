@@ -19,8 +19,8 @@
  *        dense points.
  */
 
-typedef std::map<RUMBA::Point<int>, std::set<int> > bucketmap_t;
-typedef std::map<RUMBA::Point<int>, std::set<int> >::const_iterator
+typedef std::map<RUMBA::Point<int>, std::set<uint> > bucketmap_t;
+typedef std::map<RUMBA::Point<int>, std::set<uint> >::const_iterator
     bucketmap_const_iterator;
 
 
@@ -71,9 +71,9 @@ bucketmap_t bucket (double R,
     bucketmap_t result;
 
     RUMBA::Point<int> thebucket;
-    std::set<int> emptyset;
+    std::set<uint> emptyset;
 
-    for (int i = 0; i < allpoints.size(); ++i)
+    for (uint i = 0; i < allpoints.size(); ++i)
     {
         thebucket = getBucket(allpoints[i], R);
         bucketmap_const_iterator tmp = result.find(thebucket);
@@ -90,7 +90,7 @@ bucketmap_t bucket (double R,
  */
 int density
 (
-int i, double R,
+uint i, double R,
 const bucket_distance_function & f,
 std::vector<int> & nearby_points
   )
@@ -107,7 +107,7 @@ std::vector<int> & nearby_points
                     (RUMBA::Point<int> (i,j,k,0) );
                 if (tmp != f.buckets.end())
                 {
-                    for (std::set<int>::const_iterator it =
+                    for (std::set<uint>::const_iterator it =
                             tmp->second.begin();
                             it != tmp->second.end();
                             ++it)
@@ -131,8 +131,8 @@ double getSSBetween ( const clusterlist_t & clusters,
     std::pair<int,int> p;
     double SSbetween = 0;
     int N = clusters.size();
-    for (int i = 0; i < clusters.size(); ++i)
-        for (int j = 0; j < i; ++j)
+    for (uint i = 0; i < clusters.size(); ++i)
+        for (uint j = 0; j < i; ++j)
         {
                p = nearest_points(i,j,clusters, f);
                SSbetween += square(f(clusters[i][p.first],clusters[j][p.second]));
@@ -203,7 +203,7 @@ void find_dense_points(
     bucketmap_t buckets = bucket(R, allpoints);
     bucket_distance_function D  ( euclidean3, buckets, allpoints);
 
-    for (int i = 0; i < dense_points.size(); ++i)
+    for (uint i = 0; i < dense_points.size(); ++i)
         if (dense_points[i]<threshold)
         {
             dense_points[i] = density(i,R,D,nearby_points);
