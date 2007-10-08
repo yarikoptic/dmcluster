@@ -72,6 +72,7 @@ public:
 
 /*
   Reserved detailed levels of verbose output
+   91  -- input
    106 -- bucket creation
  */
 class VerboseOutput

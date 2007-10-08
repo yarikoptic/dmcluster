@@ -119,18 +119,18 @@ std::vector<int> & nearby_points
                             ++it)
                     {
                         assert (*it < f.allpoints.size() && *it >= 0);
-
+                        double d = f(p, f.allpoints[*it]);
                         VDOUT(106, "Comparing " << p <<" and " << f.allpoints[*it]);
 
-                        if (f(p, f.allpoints[*it]) <= R)
+                        if (d <= R)
                         {
-                            VDOUT(106, " included: closer than " << R << "\n");
+                            VDOUT(106, " + " << d << " < " << R << "\n");
                             ++count;
                             nearby_points.push_back(*it);
                         }
                         else
                         {
-                            VDOUT(106, " excluded: further than " << R << "\n");
+                            VDOUT(106, " - " << d << " > " << R << "\n");
                         }
 
                     }
@@ -222,7 +222,7 @@ void find_dense_points(
         if (dense_points[i]<threshold)
         {
             dense_points[i] = density(i,R,D,nearby_points);
-            vout << 6 << "Point " << i << " density = " << dense_points[i] << "\n"; 
+            VDOUT(106, "Point " << i << " density = " << dense_points[i] << "\n");
 //            nearby_points takes up a lot of space unless we use it on a
 //            per-cluster basis ... maybe we should keep a list of all nearby
 //            points as opposed to one per-dense point.

@@ -366,26 +366,24 @@ point_t  readpoint(const std::string& s)
     strin >> p.y();
     strin >> p.z();
     strin >> p.t();
+    VDOUT(91, "point "<<p<<"\n");
     return p;
 }
 
 // return a list of points, allpoints
 std::vector<point_t> loadfile(std::istream & in)
 {
-    std::istringstream strin;
     std::string s;
-    std::vector<std::string> lines;
     std::vector<point_t> result;
 
     while (std::getline(in,s))
+    {
+        VDOUT(91, "Line " << s << "\n");
         if (s.length()>100)
             throw RUMBA::Exception (
                 "Input line is too big (longer than 100 chars). It must be a binary file");
-        lines.push_back(s);
-
-    for (uint i = 0; i < lines.size(); ++i)
-        result.push_back(readpoint(lines[i]));
-
+        result.push_back(readpoint(s));
+    }
     return result;
 }
 
@@ -442,9 +440,9 @@ std::vector<point_t> loadniftifile(std::string infile,
             z *= ni->dz;
             t *= ni->dt;
         }
-        vout << 4 << "Adding point " << data[offset] << " = "
-             << x << "," << y << "," << z << "," << t << "\n";
-        result.push_back(point_t(x, y, z));
+        point_t p(x, y, z);
+        VDOUT(91, "Adding point " << data[offset] << " = " << p << "\n");
+        result.push_back(p);
     }
     vout << 2 << "Found " << result.size() << " points" << "\n";
     return result;
@@ -721,6 +719,11 @@ int main(int argc, char** argv)
             step = (radius-startradius)/10;
             setarg(argh, "step", step, true);
         }
+        else
+        {   // There is no sense to keep default value.
+            vout << 3 << "i: startradius assigned radius value since no startradius is given\n";
+            startradius = radius;
+        }
 
         setarg(argh, "threshold", threshold, true);
         //throw RUMBA::Exception("--threshold|-t required");
@@ -800,7 +803,7 @@ int main(int argc, char** argv)
             {
                 if (dense_points[i] >= threshold)
                 {
-                    out->set(allpoints[i], 1);
+                    out->set(allpoints[i], dense_points[i]);
                     actual_dense_points++;
                 }
                 //printpoint(allpoints[i],*out) << " " << 1 << std::endl;
