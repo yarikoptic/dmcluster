@@ -57,6 +57,9 @@ bucket_distance_function::bucket_distance_function
 RUMBA::Point<int> getBucket ( const RUMBA::Point<double> & p, double R)
 {
 #if 0
+// apparently it doesn't matter if we simply floor or round.
+// Later on points get checked by their original coordinates
+// yoh is lost where actually we thought that there is a bug...
     int x = static_cast<int> (round(p.x()/R));
     int y = static_cast<int> (round(p.y()/R));
     int z = static_cast<int> (round(p.z()/R));
