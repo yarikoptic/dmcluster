@@ -100,7 +100,7 @@ public:
 			|| (level > 10 && (clevel == level || clevel<=4)))
         {
 			uint indent = (clevel<=10?clevel-1:10);
-            for (int i=0; i<indent; i++) doout << " ";
+            for (uint i=0; i<indent; i++) doout << " ";
             return doout;
         }
         else                 return noout;

@@ -803,7 +803,7 @@ int main(int argc, char** argv)
             {
                 if (dense_points[i] >= threshold)
                 {
-                    out->set(allpoints[i], dense_points[i]);
+                    out->set(allpoints[i], 1); //dense_points[i]);
                     actual_dense_points++;
                 }
                 //printpoint(allpoints[i],*out) << " " << 1 << std::endl;
@@ -815,7 +815,7 @@ int main(int argc, char** argv)
             vout << 3 << "Calling cluster2() " << "\n";
             clusters = cluster2(
                 allpoints, euclidean3, threshold,
-//                0.01, radius, radius/10.0 , dense_points, dense_point_neighbours, between_ptr);
+
                 startradius, radius, step , dense_points, dense_point_neighbours, between_ptr,
                 merge_on_introduction, merge_rule, &cluster_sizes);
             vout << 3 << "cluster2() has completed with " << clusters.size() << " clusters found." << "\n";
@@ -858,19 +858,22 @@ int main(int argc, char** argv)
         }
 
         if (argh.arg("variance"))
-        {
-            vout << 3 << "Output variance\n";
-            if (between_ptr)
+            if (clusters.size()>0)
             {
-                std::cout << getVarwithin(clusters,allpoints,dense_point_neighbours) / between
-                          << std::endl;
+                vout << 3 << "Output variance\n";
+                if (between_ptr)
+                {
+                    std::cout << getVarwithin(clusters,allpoints,dense_point_neighbours) / between
+                              << std::endl;
+                }
+                else
+                {
+                    std::cout << dovariance(clusters,allpoints, dense_point_neighbours)
+                              << std::endl;
+                }
             }
             else
-            {
-                std::cout << dovariance(clusters,allpoints, dense_point_neighbours)
-                          << std::endl;
-            }
-        }
+                std::cout << "0\nNo clusters found. Variance cannot be computed\n";
 
         if (argh.arg("startradius"))
         {
