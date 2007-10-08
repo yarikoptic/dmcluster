@@ -102,6 +102,7 @@ std::vector<int> & nearby_points
 {
     RUMBA::Point<double> p = f.allpoints[i];
     RUMBA::Point<int> thebucket = getBucket ( p,R );
+    VDOUT(106, "Called desnity i=" << i <<" R=" << R << "\n");
 
     int count = 0;
     for (int i = thebucket.x()-1; i <= thebucket.x()+1; ++i )
@@ -118,16 +119,20 @@ std::vector<int> & nearby_points
                             ++it)
                     {
                         assert (*it < f.allpoints.size() && *it >= 0);
-#ifdef VERBOSE_DETAILED
-                        vout << 106
-//                             << "Comparing " << f <<" and " << f.allpoints[*it] << "\n";
-                             << "Comparing " << 1 <<" and " << 2 << "\n";
-#endif
+
+                        VDOUT(106, "Comparing " << p <<" and " << f.allpoints[*it]);
+
                         if (f(p, f.allpoints[*it]) <= R)
                         {
+                            VDOUT(106, " included: closer than " << R << "\n");
                             ++count;
                             nearby_points.push_back(*it);
                         }
+                        else
+                        {
+                            VDOUT(106, " excluded: further than " << R << "\n");
+                        }
+
                     }
                 }
            }
