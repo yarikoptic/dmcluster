@@ -246,7 +246,9 @@ std::set<int> cluster_and_neighbours
     return result;
 }
 
-double getVarwithin( const clusterlist_t& clusters, const std::vector<RUMBA::Point<double> > & allpoints, const std::map<int, std::vector<int> >& dense_point_neighbours)
+double getVarwithin( const clusterlist_t& clusters,
+                     const std::vector<RUMBA::Point<double> > & allpoints,
+                     const std::map<int, std::vector<int> >& dense_point_neighbours)
 {
     double result = 0;
     RUMBA::Point<double> m;
@@ -621,8 +623,8 @@ RUMBA::Argument myArgs [] =
     RUMBA::Argument ( "rescale", RUMBA::FLAG, 's' ),
     RUMBA::Argument ( "nnbetween", RUMBA::FLAG, '\0'),
     RUMBA::Argument ( "densepoints", RUMBA::FLAG, '\0'),
-    RUMBA::Argument ( "step", RUMBA::NUMERIC, '\0'), // step size for iterations
-    RUMBA::Argument ( "startradius", RUMBA::NUMERIC, '\0'), // initial value if multiple iterations are used
+    RUMBA::Argument ( "radiusstep", RUMBA::NUMERIC, '\0'), // step size for iterations
+    RUMBA::Argument ( "radiusstart", RUMBA::NUMERIC, '\0'), // initial value if multiple iterations are used
     RUMBA::Argument ("rjmerge", RUMBA::FLAG, '\0'),
     RUMBA::Argument()
 };
@@ -674,8 +676,8 @@ int main(int argc, char** argv)
     double between = 0;
     double * between_ptr = 0;
     bool merge_on_introduction = false;
-    double step = -1;
-    double startradius = 0.01;
+    double radiusstep = -1;
+    double radiusstart = 0.01;
     std::vector<int> cluster_sizes; // number of clusters in the solution for
     // each value of the R parameter
     enum merge_rule_t merge_rule = NN_MERGE;
@@ -697,11 +699,11 @@ int main(int argc, char** argv)
         if (argh.arg("quiet"))
             vout.setLevel(0);
 
-        if (argh.arg("step"))
+        if (argh.arg("radiusstep"))
         {
-            setarg(argh, "step", step);
-            if (step <= 0)
-                throw RUMBA::Exception ("Step size must be positive");
+            setarg(argh, "radiusstep", radiusstep);
+            if (radiusstep <= 0)
+                throw RUMBA::Exception ("Radius step size must be positive");
             merge_on_introduction = true;
         }
         if (argh.arg("rjmerge"))
@@ -710,19 +712,19 @@ int main(int argc, char** argv)
 
         setarg(argh, "radius", radius, true);
 
-        if (argh.arg("startradius"))
+        if (argh.arg("radiusstart"))
         {
-            setarg(argh, "startradius", startradius);
-            if (startradius <= 0 || startradius > radius)
+            setarg(argh, "radiusstart", radiusstart);
+            if (radiusstart <= 0 || radiusstart > radius)
                 throw RUMBA::Exception ("start radius must be positive and less than radius");
 
-            step = (radius-startradius)/10;
-            setarg(argh, "step", step, true);
+            radiusstep = (radius-radiusstart)/10;
+            setarg(argh, "radiusstep", radiusstep, true);
         }
         else
         {   // There is no sense to keep default value.
-            vout << 3 << "i: startradius assigned radius value since no startradius is given\n";
-            startradius = radius;
+            vout << 3 << "i: radiusstart assigned radius value since no radiusstart is given\n";
+            radiusstart = radius;
         }
 
         setarg(argh, "threshold", threshold, true);
@@ -815,8 +817,7 @@ int main(int argc, char** argv)
             vout << 3 << "Calling cluster2() " << "\n";
             clusters = cluster2(
                 allpoints, euclidean3, threshold,
-
-                startradius, radius, step , dense_points, dense_point_neighbours, between_ptr,
+                radiusstart, radius, radiusstep , dense_points, dense_point_neighbours, between_ptr,
                 merge_on_introduction, merge_rule, &cluster_sizes);
             vout << 3 << "cluster2() has completed with " << clusters.size() << " clusters found." << "\n";
         }
@@ -875,13 +876,13 @@ int main(int argc, char** argv)
             else
                 std::cout << "0\nNo clusters found. Variance cannot be computed\n";
 
-        if (argh.arg("startradius"))
+        if (argh.arg("radiusstart"))
         {
-            double rtmp = startradius;
+            double rtmp = radiusstart;
             for (uint i = 0; i < cluster_sizes.size(); ++i )
             {
                 std::cout << rtmp << " " << cluster_sizes[i] << std::endl;
-                rtmp += step;
+                rtmp += radiusstep;
             }
         }
     }

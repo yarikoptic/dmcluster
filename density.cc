@@ -208,6 +208,46 @@ clusterlist_t cluster2
     return clusters;
 }
 
+/*
+ Lobotomized cluster2 to do only its job - for given
+ R and threshold compute clusters.
+ It might be performance suboptimal to the sweep of cluster2
+ over the range of values, but since we need also to compute pseudo-F
+ to select 'best' and best set might be over different pairs of R,threshold
+ yoh decided to neglect performance hit for now
+ */
+clusterlist_t cluster_plain
+(
+ std::vector<point_t> allpoints,
+ distance_function_t f,
+ int threshold,
+ double R,
+ std::vector<int> & dense_points,
+ std::map<int, std::vector<int> >& dense_point_neighbours,
+ double* ssbetween ,
+ bool merge_on_introduction ,
+ enum merge_rule_t merge_rule
+ )
+{
+    clusterlist_t clusters;
+    int N = allpoints.size();
+    dense_points.resize(N);
+    for (int i = 0; i < N; ++i)
+        dense_points[i] = 0;
+
+    bucketmap_t buckets = bucket(R_end, allpoints);
+    bucket_distance_function D  ( euclidean3, buckets, allpoints);
+
+    scanpoints(clusters, R, D, threshold, dense_points,
+               dense_point_neighbours,
+               merge_on_introduction, merge_rule);
+
+    if (ssbetween)
+        *ssbetween = getSSBetween(clusters,D);
+
+    return clusters;
+}
+
 /* identify dense points and their "electors" */
 void find_dense_points(
         std::vector<point_t> allpoints,
