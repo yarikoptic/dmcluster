@@ -829,18 +829,19 @@ int main(int argc, char** argv)
             {
                 if (dense_points[i] >= threshold)
                 {
-                    out->set(allpoints[i], 1); //dense_points[i]);
+                    //out->set(allpoints[i], 1); //dense_points[i]);
+                    out->set(allpoints[i], dense_points[i]);
                     actual_dense_points++;
                 }
                 //printpoint(allpoints[i],*out) << " " << 1 << std::endl;
             }
             vout << 2 << "Number of dense points = " << actual_dense_points << "\n";
         }
-        else if ( radiusstart!= radius || thresholdstart != threshold )
+        else if (1) // radiusstart!= radius || thresholdstart != threshold )
         {
             vout << 3 << "Sweeping over different values of threshold and radius\n";
             int t = thresholdstart, bestt=0, tried=0;
-            double bestr=0, bestcrit=0;
+            double bestr=0, bestcrit=0, crit=0;
 
             double r = radiusstart;
             vout << -5 << "        ";
@@ -857,7 +858,6 @@ int main(int argc, char** argv)
                 vout << -5 << "thr=" << std::setw(3)<< t << ": ";
                 do
                 {
-                    double crit;
                     vout << 6 << "Calling cluster_plain() " << "\n";
 
                     // find clusters
@@ -887,13 +887,9 @@ int main(int argc, char** argv)
                 vout << -5 << "\n";
                 t += thresholdstep;
             } while (t <= threshold);
+
             if (bestcrit>0 && tried > 1)
             {                   // recompute for optimal values
-                double crit;
-                vout << 2 << "Best parameters found to provide crit="
-                     << bestcrit << " are threshold=" << bestt << " radius="<<bestr 
-                     << " tried " << tried << " pairs\n";
-
                 clusters = cluster_plain(
                     allpoints, euclidean3, bestt, bestr,
                     dense_points, dense_point_neighbours, between_ptr,
@@ -906,6 +902,11 @@ int main(int argc, char** argv)
                 // we run deterministic algorithm!
                 assert(crit==bestcrit);
             }
+
+            vout << 1 << "crit=" << crit <<
+                " #clusters=" << clusters.size() <<
+                " threshold=" << bestt << " radius="<<bestr << "\n";
+
         }
         else
         {
