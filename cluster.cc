@@ -1,6 +1,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <iomanip>
 #include <sstream>
 #include <string>
 #include <limits>
@@ -625,6 +626,8 @@ RUMBA::Argument myArgs [] =
     RUMBA::Argument ( "densepoints", RUMBA::FLAG, '\0'),
     RUMBA::Argument ( "radiusstep", RUMBA::NUMERIC, '\0'), // step size for iterations
     RUMBA::Argument ( "radiusstart", RUMBA::NUMERIC, '\0'), // initial value if multiple iterations are used
+    RUMBA::Argument ( "thresholdstep", RUMBA::NUMERIC, '\0'),
+    RUMBA::Argument ( "thresholdstart", RUMBA::NUMERIC, '\0'),
     RUMBA::Argument ("rjmerge", RUMBA::FLAG, '\0'),
     RUMBA::Argument()
 };
@@ -638,6 +641,11 @@ void help(const char* progname)
         " [-r|--radius <radius>] [-t|--threshold <N>]\n" <<
         " [-b|--bucket] [--density|-d] [--rjmerge] [--rescale] ]\n" <<
         " [<additional options>]\n" <<
+        std::endl <<
+        "Options altering search for optimal value\n" <<
+        " (X can be threshold and/or radius):\n" <<
+        " [--Xstart]: start value for X\n" <<
+        " [--Xstep]:  step value for X\n" <<
         std::endl <<
         "Options available when working with brain volumes:\n" <<
         "  [--voxelspace]: operate on voxel coordinates, not in mm's\n" <<
@@ -678,6 +686,9 @@ int main(int argc, char** argv)
     bool merge_on_introduction = false;
     double radiusstep = -1;
     double radiusstart = 0.01;
+    int thresholdstep = -1;
+    int thresholdstart = 10;
+
     std::vector<int> cluster_sizes; // number of clusters in the solution for
     // each value of the R parameter
     enum merge_rule_t merge_rule = NN_MERGE;
@@ -706,6 +717,7 @@ int main(int argc, char** argv)
                 throw RUMBA::Exception ("Radius step size must be positive");
             merge_on_introduction = true;
         }
+
         if (argh.arg("rjmerge"))
             merge_rule = RJ_MERGE;
 
@@ -717,9 +729,11 @@ int main(int argc, char** argv)
             setarg(argh, "radiusstart", radiusstart);
             if (radiusstart <= 0 || radiusstart > radius)
                 throw RUMBA::Exception ("start radius must be positive and less than radius");
-
-            radiusstep = (radius-radiusstart)/10;
-            setarg(argh, "radiusstep", radiusstep, true);
+            if (!argh.arg("radiusstep"))
+            {
+                radiusstep = (radius-radiusstart)/10;
+                setarg(argh, "radiusstep", radiusstep, true);
+            }
         }
         else
         {   // There is no sense to keep default value.
@@ -728,7 +742,17 @@ int main(int argc, char** argv)
         }
 
         setarg(argh, "threshold", threshold, true);
-        //throw RUMBA::Exception("--threshold|-t required");
+        thresholdstart = threshold;
+
+        // XXX Do checks
+        setarg(argh, "thresholdstep", thresholdstep);
+        setarg(argh, "thresholdstart", thresholdstart);
+        if (thresholdstart != threshold) // so if thresholdstart was provided
+            if (thresholdstep <= 0) 
+            {
+                thresholdstep = (threshold - thresholdstart)/10;
+                vout << 3 << "i: thresholdstep assigned " << thresholdstep << "\n";
+            }
 
         if (argh.arg("infile"))
         {
@@ -812,8 +836,43 @@ int main(int argc, char** argv)
             }
             vout << 2 << "Number of dense points = " << actual_dense_points << "\n";
         }
+        else if ( radiusstart!= radius || thresholdstart != threshold )
+        {
+            vout << 3 << "Sweeping over different values of threshold and radius\n";
+            int t = thresholdstart;
+
+            while (1)
+            {
+                double r = radiusstart;
+                vout << -5 << "thr=" << std::setw(3)<< t << ": ";
+                while (1)
+                {
+                    double crit;
+                    vout << 6 << "Calling cluster_plain() " << "\n";
+
+                    // find clusters
+                    clusters = cluster_plain(
+                        allpoints, euclidean3, t, r,
+                        dense_points, dense_point_neighbours, between_ptr,
+                        merge_on_introduction, merge_rule);
+
+                    // check the quality ;-)
+                    if (between_ptr)
+                        crit = getVarwithin(clusters, allpoints, dense_point_neighbours) / between;
+                    else
+                        crit = dovariance(clusters, allpoints, dense_point_neighbours);
+                    vout << -5 << "\tR=" << r << " " << std::setprecision(2) << crit << "/" << clusters.size();
+                    if (r>=radius) break;
+                    r += radiusstep;
+                }
+                vout << -5 << "\n";
+                if (t>=threshold) break;
+                t += thresholdstep;
+            }
+        }
         else
         {
+
             vout << 3 << "Calling cluster2() " << "\n";
             clusters = cluster2(
                 allpoints, euclidean3, threshold,

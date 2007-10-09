@@ -235,7 +235,7 @@ clusterlist_t cluster_plain
     for (int i = 0; i < N; ++i)
         dense_points[i] = 0;
 
-    bucketmap_t buckets = bucket(R_end, allpoints);
+    bucketmap_t buckets = bucket(R, allpoints);
     bucket_distance_function D  ( euclidean3, buckets, allpoints);
 
     scanpoints(clusters, R, D, threshold, dense_points,
