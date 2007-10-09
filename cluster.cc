@@ -684,9 +684,9 @@ int main(int argc, char** argv)
     double between = 0;
     double * between_ptr = 0;
     bool merge_on_introduction = false;
-    double radiusstep = -1;
+    double radiusstep = 0.5;
     double radiusstart = 0.01;
-    int thresholdstep = -1;
+    int thresholdstep = 1;
     int thresholdstart = 10;
 
     std::vector<int> cluster_sizes; // number of clusters in the solution for
@@ -737,18 +737,18 @@ int main(int argc, char** argv)
         }
         else
         {   // There is no sense to keep default value.
-            vout << 3 << "i: radiusstart assigned radius value since no radiusstart is given\n";
             radiusstart = radius;
+            vout << 3 << "i: radiusstart assigned radius value "
+                 << radiusstart << " since no radiusstart is given\n";
         }
 
         setarg(argh, "threshold", threshold, true);
         thresholdstart = threshold;
-
         // XXX Do checks
         setarg(argh, "thresholdstep", thresholdstep);
         setarg(argh, "thresholdstart", thresholdstart);
         if (thresholdstart != threshold) // so if thresholdstart was provided
-            if (thresholdstep <= 0) 
+            if (!argh.arg("thresholdstep"))
             {
                 thresholdstep = (threshold - thresholdstart)/10;
                 vout << 3 << "i: thresholdstep assigned " << thresholdstep << "\n";
@@ -839,13 +839,23 @@ int main(int argc, char** argv)
         else if ( radiusstart!= radius || thresholdstart != threshold )
         {
             vout << 3 << "Sweeping over different values of threshold and radius\n";
-            int t = thresholdstart;
+            int t = thresholdstart, bestt=0, tried=0;
+            double bestr=0, bestcrit=0;
 
+            double r = radiusstart;
+            vout << -5 << "        ";
             while (1)
+            {
+                vout << -5  << "     " << std::left << std::setw(7) << r;
+                if (r>=radius) break;
+                r+=radiusstep;
+            }
+            vout << -5 << "\n";
+            do
             {
                 double r = radiusstart;
                 vout << -5 << "thr=" << std::setw(3)<< t << ": ";
-                while (1)
+                do
                 {
                     double crit;
                     vout << 6 << "Calling cluster_plain() " << "\n";
@@ -861,13 +871,40 @@ int main(int argc, char** argv)
                         crit = getVarwithin(clusters, allpoints, dense_point_neighbours) / between;
                     else
                         crit = dovariance(clusters, allpoints, dense_point_neighbours);
-                    vout << -5 << "\tR=" << r << " " << std::setprecision(2) << crit << "/" << clusters.size();
-                    if (r>=radius) break;
+                    if ( crit>bestcrit ) // asssume we are maximizing
+                    {
+                        bestcrit = crit;
+                        bestr = r;
+                        bestt = t;
+                    }
+                    vout << -5  << " "//<< "\t" //<< "R=" << r << " "
+                         << std::setw(5) << std::setprecision(3) << std::right << crit
+                         << "/" << std::setw(5) << std::left << clusters.size();
+                    tried++;
                     r += radiusstep;
-                }
+                } while (r <= radius);
+
                 vout << -5 << "\n";
-                if (t>=threshold) break;
                 t += thresholdstep;
+            } while (t <= threshold);
+            if (bestcrit>0 && tried > 1)
+            {                   // recompute for optimal values
+                double crit;
+                vout << 2 << "Best parameters found to provide crit="
+                     << bestcrit << " are threshold=" << bestt << " radius="<<bestr 
+                     << " tried " << tried << " pairs\n";
+
+                clusters = cluster_plain(
+                    allpoints, euclidean3, bestt, bestr,
+                    dense_points, dense_point_neighbours, between_ptr,
+                    merge_on_introduction, merge_rule);
+                // check the quality ;-)
+                if (between_ptr)
+                    crit = getVarwithin(clusters, allpoints, dense_point_neighbours) / between;
+                else
+                    crit = dovariance(clusters, allpoints, dense_point_neighbours);
+                // we run deterministic algorithm!
+                assert(crit==bestcrit);
             }
         }
         else

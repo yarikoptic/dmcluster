@@ -190,8 +190,8 @@ clusterlist_t cluster2
         scanpoints(clusters,R,D,threshold,dense_points,dense_point_neighbours,merge_on_introduction, merge_rule);
         if (cluster_sizes)
             cluster_sizes->push_back ( clusters.size());
-        R += R_step;
         vout << 5 << "R=" << R << " cluster-size=" << clusters.size() << "\n";
+        R += R_step;
     } while (R < R_end && R_step > 0);
 
     for (int i = 0; i < N; ++i)
