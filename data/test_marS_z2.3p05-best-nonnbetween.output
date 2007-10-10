@@ -1,3 +1,4 @@
+ ./cluster -o data/test_marS_z2.3p05-best-nonnbetween.nii.gz  -i data/test_marS_z2.3p05.nii.gz --radiusstart 3 --radius 7 --thresholdstart 10 --thresholdstep 5 --threshold 100  -v 5 --variance &> data/test_marS_z2.3p05-best-nonnbetween.output 
   i: radius is set to 7
   i: radiusstart is set to 3
  !: no value for parameter radiusstep was specified. Assuming default value 0.4
