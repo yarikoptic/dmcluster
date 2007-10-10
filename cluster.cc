@@ -16,7 +16,7 @@
 
 #include <nifti1_io.h>
 
-std::string version = "0.1.2";
+std::string version = "0.1.3";
 
 typedef float datatype;
 
