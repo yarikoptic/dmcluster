@@ -1,0 +1,40 @@
+  i: radius is set to 7
+  i: radiusstart is set to 3
+ !: no value for parameter radiusstep was specified. Assuming default value 0.4
+  i: threshold is set to 100
+  i: thresholdstep is set to 5
+  i: thresholdstart is set to 10
+ !: no value for parameter valuesthreshold was specified. Assuming default value 2.3
+ !: no value for parameter voxelspace was specified. Assuming default value 0
+ !: no value for parameter nonmembers was specified. Assuming default value 0
+Loading data 
+ Reading file data/test_marS_z2.3p05.nii.gz
+ Found 42653 points
+Setting up output
+Processing
+  Sweeping over different values of threshold and radius
+             3           3.4         3.8         4.2         4.6         5           5.4         5.8         6.2         6.6         7      
+thr=10 :   1.98/2      1.98/2      1.99/2      1.99/2         1/1         1/1         1/1         1/1         1/1         1/1    
+thr=15 :   2.35/3      2.35/3       3.2/4      1.99/2      1.99/2         1/1         1/1         1/1         1/1         1/1    
+thr=20 :    nan/0       nan/0      2.35/3      2.38/3     0.998/1         1/1         1/1         1/1         1/1         1/1    
+thr=25 :    nan/0       nan/0      3.81/5      2.34/3      1.85/2     0.999/1     0.999/1     0.999/1         1/1         1/1    
+thr=30 :    nan/0       nan/0       nan/0      2.28/3      2.39/3      1.86/2      1.86/2     0.998/1     0.999/1         1/1    
+thr=35 :    nan/0       nan/0       nan/0       nan/0      2.36/3      1.85/2      1.85/2      1.86/2     0.999/1     0.999/1    
+thr=40 :    nan/0       nan/0       nan/0       nan/0      2.33/3      2.39/3      2.39/3      1.85/2     0.998/1     0.999/1    
+thr=45 :    nan/0       nan/0       nan/0       nan/0      2.29/3      2.37/3      2.37/3      2.39/3      1.86/2     0.998/1    
+thr=50 :    nan/0       nan/0       nan/0       nan/0      2.26/3      2.35/3      2.35/3      2.37/3      1.85/2      1.86/2    
+thr=55 :    nan/0       nan/0       nan/0       nan/0      5.72/7      2.32/3      2.32/3      2.35/3      2.39/3      1.85/2    
+thr=60 :    nan/0       nan/0       nan/0       nan/0       nan/0      2.29/3      2.29/3      2.33/3      2.38/3       2.4/3    
+thr=65 :    nan/0       nan/0       nan/0       nan/0       nan/0      2.27/3      2.27/3      2.31/3      2.36/3      2.39/3    
+thr=70 :    nan/0       nan/0       nan/0       nan/0       nan/0      3.13/4      3.13/4      2.28/3      2.35/3      2.38/3    
+thr=75 :    nan/0       nan/0       nan/0       nan/0       nan/0      5.68/7      5.68/7      2.26/3      2.33/3      2.36/3    
+thr=80 :    nan/0       nan/0       nan/0       nan/0       nan/0      5.58/7      5.58/7      4.09/5      2.31/3      2.35/3    
+thr=85 :    nan/0       nan/0       nan/0       nan/0       nan/0       nan/0       nan/0      5.68/7      2.29/3      2.34/3    
+thr=90 :    nan/0       nan/0       nan/0       nan/0       nan/0       nan/0       nan/0      4.83/6      2.27/3      2.32/3    
+thr=95 :    nan/0       nan/0       nan/0       nan/0       nan/0       nan/0       nan/0       nan/0      2.25/3       2.3/3    
+thr=100:    nan/0       nan/0       nan/0       nan/0       nan/0       nan/0       nan/0       nan/0      4.09/5      2.28/3    
+crit=5.72 #clusters=7 threshold=55 radius=4.6
+  Output clusters
+  Output variance
+5.71801
+Saving results into data/test_marS_z2.3p05-best-nonnbetween.nii.gz
