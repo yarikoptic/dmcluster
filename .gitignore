@@ -1,6 +1,8 @@
 /*.o
+/#*
+/.#*
 /*.d
 /*~
 /cluster
-/cscope.out
+/cscope.*
 /data

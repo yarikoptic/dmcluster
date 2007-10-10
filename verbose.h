@@ -93,14 +93,19 @@ public:
 
     VerboseOutputWorker& operator << (const int clevel)
     {
+		bool indent = (clevel>=0);
+		int clevel_ = abs(clevel);
         // I am stupid... could not figure out cleaner way... pardon me
 		// detailed levels start > 10. Then we output only debugs
 		//  on levels up to 4 and then that specific detailed level.
-        if ((level <= 10 && clevel <= level)					\
-			|| (level > 10 && (clevel == level || clevel<=4)))
+        if ((level <= 10 && clevel_ <= level)					\
+			|| (level > 10 && (clevel_ == level || clevel_<=4)))
         {
-			uint indent = (clevel<=10?clevel-1:10);
-            for (uint i=0; i<indent; i++) doout << " ";
+			if (indent)
+			{
+				uint indent = (clevel_<=10?clevel_-1:10);
+				for (uint i=0; i<indent; i++) doout << " ";
+			}
             return doout;
         }
         else                 return noout;
