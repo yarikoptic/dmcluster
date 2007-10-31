@@ -16,7 +16,7 @@
 
 #include <nifti1_io.h>
 
-std::string version = "0.1.3";
+std::string version = "0.1.4";
 
 typedef float datatype;
 
@@ -649,7 +649,7 @@ void help(const char* progname)
         std::endl <<
         "Options available when working with brain volumes:\n" <<
         "  [--voxelspace]: operate on voxel coordinates, not in mm's\n" <<
-        "  [--valuesthreshold|-V <value>]: value to threshold at. Can be\n" <<
+        "  [--valuesthreshold|-T <value>]: value to threshold at. Can be\n" <<
         "     negative to select negative (only) voxels\n" <<
         std::endl <<
         "Additional common options:\n" <<
