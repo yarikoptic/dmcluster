@@ -1,6 +1,6 @@
 OBJS=$(patsubst %.cc,%.o, $(wildcard *.cc) )
 
-CPPFLAGS=-O3 -g -Wall -Ibase/ -I /usr/include/nifti
+CPPFLAGS= -O3 -g -Wall -Ibase/ -I /usr/include/nifti
 LD_FLAGS+=-lniftiio
 
 # unobtrusively account for #include dependencies
