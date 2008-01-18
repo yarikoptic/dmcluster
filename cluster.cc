@@ -16,7 +16,7 @@
 
 #include <nifti1_io.h>
 
-std::string version = "0.1.4";
+std::string version = "0.1.5";
 
 typedef float datatype;
 
@@ -267,7 +267,8 @@ double getVarwithin( const clusterlist_t& clusters,
 
 double dovariance ( const clusterlist_t& clusters,
                     const std::vector<RUMBA::Point<double> > & allpoints,
-                    const std::map<int, std::vector<int> >& dense_point_neighbours)
+                    const std::map<int, std::vector<int> >& dense_point_neighbours,
+                    const bool meaninvariance)
 {
     RUMBA::Point<double> m;
     std::vector<RUMBA::Point<double> > cluster_means;
@@ -306,7 +307,11 @@ double dovariance ( const clusterlist_t& clusters,
 //     std::cerr << variance(cluster_means) +varwithin << " " << vartotal << std::endl;
 
 //     return (variance(cluster_means) + varwithin) * clusters.size() / varwithin;
-    return vartotal / (varwithin/clusters.size());
+    if (meaninvariance)
+        return vartotal / (varwithin/clusters.size());
+    else
+        return vartotal / varwithin;
+
 }
 
 
@@ -623,6 +628,7 @@ RUMBA::Argument myArgs [] =
     RUMBA::Argument ( "variance", RUMBA::FLAG, '\0' ),
     RUMBA::Argument ( "rescale", RUMBA::FLAG, 's' ),
     RUMBA::Argument ( "nnbetween", RUMBA::FLAG, '\0'),
+    RUMBA::Argument ( "nomeaninvariance", RUMBA::FLAG, '\0'),
     RUMBA::Argument ( "densepoints", RUMBA::FLAG, '\0'),
     RUMBA::Argument ( "radiusstep", RUMBA::NUMERIC, '\0'), // step size for iterations
     RUMBA::Argument ( "radiusstart", RUMBA::NUMERIC, '\0'), // initial value if multiple iterations are used
@@ -662,6 +668,8 @@ void help(const char* progname)
         "     by mean squared between centroids\n" <<
         "  [--nnbetween]: similar to variance, but use nearest neighbor distance\n" <<
         "     between clusters instead of centroid distance (recommended)\n" <<
+        "  [--nomeaninvariance]: do not mean invariance across clusters\n" <<
+        "     between clusters instead of centroid distance (recommended)\n" <<
         "\nNote that density is output before variance if both args are given\n";
 }
 
@@ -681,6 +689,7 @@ int main(int argc, char** argv)
 
     OutputResults * out = NULL;
     std::ofstream fout;
+    bool meaninvariance = true;
     double between = 0;
     double * between_ptr = 0;
     bool merge_on_introduction = false;
@@ -815,6 +824,9 @@ int main(int argc, char** argv)
         if (argh.arg("nnbetween"))
             between_ptr = &between;
 
+        if (argh.arg("nomeaninvariance"))
+            meaninvariance = false;
+
         vout << 1 << "Processing\n";
 
         // special case: only return dense points, don't cluster
@@ -870,7 +882,7 @@ int main(int argc, char** argv)
                     if (between_ptr)
                         crit = getVarwithin(clusters, allpoints, dense_point_neighbours) / between;
                     else
-                        crit = dovariance(clusters, allpoints, dense_point_neighbours);
+                        crit = dovariance(clusters, allpoints, dense_point_neighbours, meaninvariance);
                     if ( crit>bestcrit ) // asssume we are maximizing
                     {
                         bestcrit = crit;
@@ -898,7 +910,7 @@ int main(int argc, char** argv)
                 if (between_ptr)
                     crit = getVarwithin(clusters, allpoints, dense_point_neighbours) / between;
                 else
-                    crit = dovariance(clusters, allpoints, dense_point_neighbours);
+                    crit = dovariance(clusters, allpoints, dense_point_neighbours, meaninvariance);
                 // we run deterministic algorithm!
                 assert(crit==bestcrit);
             }
@@ -966,7 +978,7 @@ int main(int argc, char** argv)
                 }
                 else
                 {
-                    std::cout << dovariance(clusters,allpoints, dense_point_neighbours)
+                    std::cout << dovariance(clusters,allpoints, dense_point_neighbours, meaninvariance)
                               << std::endl;
                 }
             }
