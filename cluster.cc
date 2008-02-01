@@ -16,7 +16,7 @@
 
 #include <nifti1_io.h>
 
-std::string version = "0.1.5";
+std::string version = "0.1.6";
 
 typedef float datatype;
 
@@ -56,7 +56,8 @@ std::ostream& printpoint(const RUMBA::Point<double> & p, std::ostream& out)
 class OutputResults
 {
 public:
-    virtual void set(const RUMBA::Point<double> & p, const int value, const int optindex=INT_MAX) = 0;
+    virtual void set(const RUMBA::Point<double> & p, const int optvalue=INT_MAX,
+                     const int optindex=INT_MAX) = 0;
     virtual ~OutputResults(){};
 };
 
@@ -69,11 +70,13 @@ public:
     OutputASCII(std::ostream& lout)
         : out(lout) {}
 
-    void set(const RUMBA::Point<double> & p, const int value, const int optindex=INT_MAX)
+    void set(const RUMBA::Point<double> & p, const int optvalue=INT_MAX,
+             const int optindex=INT_MAX)
         {
-            printpoint(p,out);
+            printpoint(p, out);
             if (optindex != INT_MAX) out << " " << optindex;
-            out << " " << value << std::endl;
+            if (optvalue != INT_MAX) out << " " << optvalue;
+            out << std::endl;
         }
 
 };
@@ -137,7 +140,8 @@ public:
             }
         }
 
-    void set(const RUMBA::Point<double> & p, const int value, const int optindex=INT_MAX)
+    void set(const RUMBA::Point<double> & p, const int optvalue=INT_MAX,
+             const int optindex=INT_MAX)
     // Obtains voxel or space coordinates and saves into the ni->data
         {
             int x, y, z, t, offset;
@@ -148,7 +152,7 @@ public:
             t = (int) round(p.t()/mt);
             // compute offset
             offset =  dx*x + dy*y + dz*z + dt*t;
-            data[offset] = value;
+            data[offset] = optvalue;
         }
 };
 
@@ -268,7 +272,7 @@ double getVarwithin( const clusterlist_t& clusters,
 double dovariance ( const clusterlist_t& clusters,
                     const std::vector<RUMBA::Point<double> > & allpoints,
                     const std::map<int, std::vector<int> >& dense_point_neighbours,
-                    const bool meaninvariance)
+                    const bool scaling)
 {
     RUMBA::Point<double> m;
     std::vector<RUMBA::Point<double> > cluster_means;
@@ -307,7 +311,7 @@ double dovariance ( const clusterlist_t& clusters,
 //     std::cerr << variance(cluster_means) +varwithin << " " << vartotal << std::endl;
 
 //     return (variance(cluster_means) + varwithin) * clusters.size() / varwithin;
-    if (meaninvariance)
+    if (scaling)
         return vartotal / (varwithin/clusters.size());
     else
         return vartotal / varwithin;
@@ -628,8 +632,9 @@ RUMBA::Argument myArgs [] =
     RUMBA::Argument ( "variance", RUMBA::FLAG, '\0' ),
     RUMBA::Argument ( "rescale", RUMBA::FLAG, 's' ),
     RUMBA::Argument ( "nnbetween", RUMBA::FLAG, '\0'),
-    RUMBA::Argument ( "nomeaninvariance", RUMBA::FLAG, '\0'),
+    RUMBA::Argument ( "scaling", RUMBA::FLAG, '\0'),
     RUMBA::Argument ( "densepoints", RUMBA::FLAG, '\0'),
+    RUMBA::Argument ( "inputpoints", RUMBA::FLAG, '\0'),
     RUMBA::Argument ( "radiusstep", RUMBA::NUMERIC, '\0'), // step size for iterations
     RUMBA::Argument ( "radiusstart", RUMBA::NUMERIC, '\0'), // initial value if multiple iterations are used
     RUMBA::Argument ( "thresholdstep", RUMBA::NUMERIC, '\0'),
@@ -661,15 +666,17 @@ void help(const char* progname)
         "Additional common options:\n" <<
         "  [--verbose <level>]: how verbose output should be (default 1)\n" <<
         "  [--quiet|-q]: analog to --verbose 0\n" <<
+        "  [--inputpoints]: only output list of input points, so it could be\n" <<
+        "                   into elderly cluster tool\n" <<
         "  [--densepoints]: only output list of dense points, don't cluster\n" <<
         "  [-n|--nonmembers]: show points that don't meet density threshold\n" <<
         "     (these are assigned to \"cluster <numberofclusters+1>\")\n" <<
         "  [--variance]: show the sum mean squared between clusters divided\n" <<
         "     by mean squared between centroids\n" <<
-        "  [--nnbetween]: similar to variance, but use nearest neighbor distance\n" <<
-        "     between clusters instead of centroid distance (recommended)\n" <<
-        "  [--nomeaninvariance]: do not mean invariance across clusters\n" <<
-        "     between clusters instead of centroid distance (recommended)\n" <<
+        "  [--nnbetween]: Defines merge rule either to be nearest neighbor distance\n" <<
+        "     if set. If not -- defines it as a centroid distance.\n" <<
+        "  [--scaling]: scaling the criterion with the number of clusters. If not\n" <<
+        "     set then not scale by number of clusters\n" <<
         "\nNote that density is output before variance if both args are given\n";
 }
 
@@ -689,7 +696,7 @@ int main(int argc, char** argv)
 
     OutputResults * out = NULL;
     std::ofstream fout;
-    bool meaninvariance = true;
+    bool scaling = false;
     double between = 0;
     double * between_ptr = 0;
     bool merge_on_introduction = false;
@@ -802,7 +809,7 @@ int main(int argc, char** argv)
         {
             argh.arg("outfile", outfile);
 
-            if (operatenifti)
+            if (operatenifti && !argh.arg("inputpoints"))
             {
                 out = new OutputNifti(outfile, infile);
                 dynamic_cast<OutputNifti*>(out)->setVoxelSpace(voxelspace);
@@ -824,13 +831,22 @@ int main(int argc, char** argv)
         if (argh.arg("nnbetween"))
             between_ptr = &between;
 
-        if (argh.arg("nomeaninvariance"))
-            meaninvariance = false;
+        if (argh.arg("scaling"))
+            scaling = true;
 
         vout << 1 << "Processing\n";
 
-        // special case: only return dense points, don't cluster
-        if (argh.arg("densepoints")) {
+        if (argh.arg("inputpoints")) {
+            // special case: only return input points, do nothing
+            vout << 1 << "Output input points" << "\n";
+            vout << 2 << "Total number of points = " << allpoints.size() << "\n";
+            for (uint i = 0; i < allpoints.size(); ++i)
+            {
+                out->set(allpoints[i]);
+            }
+        }
+        else if (argh.arg("densepoints")) {
+            // special case: only return input points, do nothing
             uint actual_dense_points = 0;
             vout << 3 << "Calling find_dense_points" << "\n";
             find_dense_points(allpoints, radius,threshold, dense_points,
@@ -882,7 +898,7 @@ int main(int argc, char** argv)
                     if (between_ptr)
                         crit = getVarwithin(clusters, allpoints, dense_point_neighbours) / between;
                     else
-                        crit = dovariance(clusters, allpoints, dense_point_neighbours, meaninvariance);
+                        crit = dovariance(clusters, allpoints, dense_point_neighbours, scaling);
                     if ( crit>bestcrit ) // asssume we are maximizing
                     {
                         bestcrit = crit;
@@ -910,7 +926,7 @@ int main(int argc, char** argv)
                 if (between_ptr)
                     crit = getVarwithin(clusters, allpoints, dense_point_neighbours) / between;
                 else
-                    crit = dovariance(clusters, allpoints, dense_point_neighbours, meaninvariance);
+                    crit = dovariance(clusters, allpoints, dense_point_neighbours, scaling);
                 // we run deterministic algorithm!
                 assert(crit==bestcrit);
             }
@@ -978,7 +994,7 @@ int main(int argc, char** argv)
                 }
                 else
                 {
-                    std::cout << dovariance(clusters,allpoints, dense_point_neighbours, meaninvariance)
+                    std::cout << dovariance(clusters,allpoints, dense_point_neighbours, scaling)
                               << std::endl;
                 }
             }
