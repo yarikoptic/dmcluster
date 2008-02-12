@@ -75,7 +75,7 @@ try:
 				params[1].append(line_css)
 			elif line.startswith("crit="):
 				bestline = "Best: " + line
-				resbest = re.match("crit=(?P<crit>[\d.]+)\s+#clusters=(?P<nc>[\d]+)\s+threshold=(?P<thr>\d+)\s+radius=(?P<radius>\d+)\s*", line)
+				resbest = re.match("crit=(?P<crit>[\d.na]+)\s+#clusters=(?P<nc>[\d]+)\s+threshold=(?P<thr>\d+)\s+radius=(?P<radius>\d+)\s*", line)
 				bestd = resbest.groupdict()
 
 except StopIteration:
