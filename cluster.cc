@@ -16,7 +16,7 @@
 
 #include <nifti1_io.h>
 
-std::string version = "0.1.6";
+std::string version = "0.1.7";
 
 typedef float datatype;
 
@@ -144,12 +144,13 @@ public:
              const int optindex=INT_MAX)
     // Obtains voxel or space coordinates and saves into the ni->data
         {
-            int x, y, z, t, offset;
+            int x, y, z, t=0, offset;
             // convert to voxel space
             x = (int) round(p.x()/mx);
             y = (int) round(p.y()/my);
             z = (int) round(p.z()/mz);
-            t = (int) round(p.t()/mt);
+            if (mt!=0)
+                t = (int) round(p.t()/mt);
             // compute offset
             offset =  dx*x + dy*y + dz*z + dt*t;
             data[offset] = optvalue;
@@ -722,6 +723,8 @@ int main(int argc, char** argv)
             argh.arg("verbose", verbosity);
             vout.setLevel(verbosity);
         }
+
+        vout << 1 << "Dense Mode Clustering. Version " << version << "\n";
 
         if (argh.arg("quiet"))
             vout.setLevel(0);
