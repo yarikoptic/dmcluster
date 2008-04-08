@@ -59,25 +59,27 @@ try:
 		if re.match("^\s*Sweeping over different values.*", line):
 			line = f.next()
 			entries = re.split('[ \t]+', line.strip())
-			radiuses = [int(x) for x in entries]
+			radiuses = [float(x) for x in entries]
 		elif len(radiuses)>0:
 			if line.startswith("thr="):
 				res = re.match('thr=(?P<thr>\d+)\s*:', line)
 				resd = res.groupdict()
-				thresholds.append(int(resd['thr']))
+				thresholds.append(float(resd['thr']))
 
 				# now we need to extract values for that threshold
 				line_ = re.sub("thr=[\d\s:]*", "", line)
 				line_ = re.sub("nan", "0", line_)
 				line_crits = [float(x) for x in re.sub("/[\d.]+\s*", " ", line_).split()]
-				line_css = [int(x) for x in re.sub("\s*[\d.]+/", " ", line_).split()]
+				line_css =     [int(x) for x in re.sub("\s*[\d.]+/", " ", line_).split()]
+				if len(line_crits) == len(radiuses)-1:
+					# known issue  that we have bogus radius at the end
+					radiuses = radiuses[:-1]
 				params[0].append(line_crits)
 				params[1].append(line_css)
 			elif line.startswith("crit="):
 				bestline = "Best: " + line
-				resbest = re.match("crit=(?P<crit>[\d.na]+)\s+#clusters=(?P<nc>[\d]+)\s+threshold=(?P<thr>\d+)\s+radius=(?P<radius>\d+)\s*", line)
+				resbest = re.match("crit=(?P<crit>[\d.na]+)\s+#clusters=(?P<nc>[\d]+)\s+threshold=(?P<thr>[\d\.]+)\s+radius=(?P<radius>[\d\.]+)\s*", line)
 				bestd = resbest.groupdict()
-
 except StopIteration:
 	f.close()
 except Exception, e:
@@ -86,45 +88,83 @@ except Exception, e:
 
 params = N.array(params)
 
-fi = pl.figure(figsize=(8,7))
-#pl.subplots_adjust(hspace=0.3)
+fi = pl.figure(figsize=(16,9))
+pl.subplots_adjust(hspace=0.1, wspace=0.1, left=0.1, right=0.95, top=0.95, bottom=0.05)
 
 # plot criterion
-#pl.subplot(1,2,1)
-im = pl.imshow(params[0,...], interpolation='nearest',
-			   aspect=len(radiuses)*1.0/len(thresholds),
-			   cmap=pl.image.cm.Greys_r,
-			   vmin=0)
-maxnc = min(15, N.max(params[1,...]))
-for i in xrange(len(thresholds)):
-	pl.text(-1.2, len(thresholds)-1-i+0.5, str(int(thresholds[i])),
-			fontsize=8,
-			color=(0,0,0),
-			horizontalalignment='right',verticalalignment='center')
 
-	for j in xrange(len(radiuses)):
+
+def plot_values(i, j, color):
+	for ind in [0, 1]:
+		pl.subplot(1,2,ind+1)
+		pl.text(j, len(thresholds)-1-i+0.5, "%3g/%d" % tuple(params[:,i,j]), fontsize=8,
+				color=color,
+				horizontalalignment='left',verticalalignment='center')
+
+
+for name, ind in [('Criterion', 0), ('Number of clusters', 1)]:
+	pl.subplot(1,2,ind+1)
+	im = pl.imshow(params[ind,...], interpolation='nearest',
+				   aspect=len(radiuses)*1.0/len(thresholds),
+				   cmap=pl.image.cm.Greys_r,
+				   vmin=0)
+	pl.xticks([])
+	pl.yticks([])
+	pl.xlabel('Radius')
+	pl.ylabel('Thresholds')
+	pl.colorbar(shrink=0.65)
+	pl.text(len(radiuses)/2+0.5, len(thresholds)*1.05, name,
+			fontsize=12,
+			color=(0,0,0),
+			horizontalalignment='center',verticalalignment='bottom')
+	#pl.title("%s %s" % (name,bestline), fontsize='small')
+
+	if ind == 0:
+		pl.text(len(radiuses)*1.1, len(thresholds)*1.1, bestline,
+		fontsize=12,
+		color=(0,0,0),
+		horizontalalignment='center',verticalalignment='bottom')
+
+maxnc = min(15, N.max(params[1,...]))
+for j in xrange(len(radiuses)):
+	for ind in [0, 1]:
+		pl.subplot(1,2,ind+1)
+		# X labels in yariks sick way
+		pl.text(j+0.5, -2.2, '%3g' % radiuses[j], fontsize=8,
+				color=(0,0,0),
+				horizontalalignment='center',verticalalignment='top')
+
+	params_ = params[0,:,j]
+	indexmax = N.where(params_ == N.max(params_))[0][0]
+	# plot "ridge" value
+	plot_values(indexmax, j, (0, 1, 0))
+
+	for i in xrange(len(thresholds)):
+		if j==0:
+			if len(thresholds)<20 or i%10 == 1:
+				for ind in [0, 1]:
+					pl.subplot(1,2,ind+1)
+					pl.text(-1.2, len(thresholds)-1-i+0.5, "%3g" % thresholds[i],
+							fontsize=8,
+							color=(0,0,0),
+							horizontalalignment='right',verticalalignment='center')
+
 		nc = params[1,i,j]
 
 		if nc > 0:
-			if thresholds[i] == int(bestd['thr']) and \
-				   radiuses[j] == int(bestd['radius']):
+			if thresholds[i] == float(bestd['thr']) and \
+				   radiuses[j] == float(bestd['radius']):
 				color = (1, 0, 0)
 			elif nc>15:
-				color = (0,0,1)
+				color = (0, 0, 1)
 			else:
 				color = (0,0, 0.5+0.5*(1.0-(maxnc-nc)*1.0)/maxnc)
-			pl.text(j+0.5, len(thresholds)-1-i+0.5, str(int(nc)), fontsize=8,
-					color=color,
-					horizontalalignment='center',verticalalignment='center')
+			if len(thresholds)<20 or color == (1, 0, 0):
+				plot_values(i, j, color)
 #im.axes.xaxis.set_ticks(radiuses)
 #im.axes.yaxis.set_ticklabels([str(x) for x in thresholds])
+#im.axes.yaxis.set_ticklabels([str(x) for x in thresholds])
 #im.axes.yaxis.set_ticks(thresholds)
-pl.yticks([])
-pl.xlabel('Radius')
-pl.ylabel('Thresholds')
-pl.colorbar()
-
-pl.title(bestline, fontsize='small')
 
 ## plot numclusters
 #pl.subplot(1,2,2)
@@ -133,6 +173,6 @@ pl.title(bestline, fontsize='small')
 #		  vmin=0)
 #pl.colorbar()
 #
-# pl.show()
+pl.show()
 
-pl.savefig(iFileName + '.pdf')
+#pl.savefig(iFileName + '.pdf')
