@@ -1,5 +1,6 @@
 OBJS=$(patsubst %.cc,%.o, $(wildcard *.cc) )
-CXXFLAGS=-I./
+CXXFLAGS=-I./ -O3
+
 all: $(OBJS)
 
 clean:
