@@ -16,7 +16,7 @@
 
 #include <nifti1_io.h>
 
-std::string version = "0.1.7+scaling+sort+minclustersize";
+std::string version = "0.1.7+scaling+sort+minclustersize+scalinglog";
 
 typedef float datatype;
 
@@ -273,7 +273,7 @@ double getVarwithin( const clusterlist_t& clusters,
 double dovariance ( const clusterlist_t& clusters,
                     const std::vector<RUMBA::Point<double> > & allpoints,
                     const std::map<int, std::vector<int> >& dense_point_neighbours,
-                    const double scaling)
+                    const double scaling, const bool scaling_log=false)
 {
     RUMBA::Point<double> m;
     std::vector<RUMBA::Point<double> > cluster_means;
@@ -310,12 +310,15 @@ double dovariance ( const clusterlist_t& clusters,
         (square(Sx/N)+square(Sy/N)+square(Sz/N));
 
 //     std::cerr << variance(cluster_means) +varwithin << " " << vartotal << std::endl;
+    double scaling_fact = 1.0;
 
 //     return (variance(cluster_means) + varwithin) * clusters.size() / varwithin;
-    if (scaling != 0)
-        return vartotal / (varwithin/pow(clusters.size(), scaling));
-    else
-        return vartotal / varwithin;
+    if (scaling_log)
+        scaling_fact = log(clusters.size()+1.0);
+    else if (scaling != 0)
+        scaling_fact = pow(clusters.size(), scaling);
+
+    return scaling_fact * vartotal / varwithin;
 
 }
 
@@ -642,6 +645,7 @@ RUMBA::Argument myArgs [] =
     RUMBA::Argument ( "nnbetween", RUMBA::FLAG, '\0'),
     RUMBA::Argument ( "no-sort", RUMBA::FLAG, '\0'),
     RUMBA::Argument ( "scaling", RUMBA::FLAG, '\0'),
+    RUMBA::Argument ( "scaling-log", RUMBA::FLAG, '\0'),
     RUMBA::Argument ( "scaling-power", RUMBA::NUMERIC, '\0'), // power to which bring number of clusters
     RUMBA::Argument ( "minimal-cluster-size", RUMBA::NUMERIC, 'm'), // prune clusters if size less than given
     RUMBA::Argument ( "densepoints", RUMBA::FLAG, '\0'),
@@ -691,6 +695,7 @@ void help(const char* progname)
         "     set then not scale by number of clusters\n" <<
         "  [--scaling-power <value>]: bring number of clusters (enables --scaling)\n" <<
         "     to the given power.\n" <<
+        "  [--scaling-log]: log the number of clusters (enables --scaling)\n" <<
         "  [-m|--minimal-cluster-size <value>]: prune clusters with size less specified.\n" <<
         "\n" <<
         "\nNote that density is output before variance if both args are given\n";
@@ -713,6 +718,7 @@ int main(int argc, char** argv)
     OutputResults * out = NULL;
     std::ofstream fout;
     double scaling = 0.0;
+    bool scaling_log = false;
     double between = 0;
     double * between_ptr = 0;
     bool do_sort_clusters = true;
@@ -787,6 +793,8 @@ int main(int argc, char** argv)
         setarg(argh, "thresholdstart", thresholdstart);
         setarg(argh, "minimal-cluster-size", minimal_cluster_size);
 
+        scaling_log = argh.arg("scaling-log");
+
         if (thresholdstart != threshold) // so if thresholdstart was provided
             if (!argh.arg("thresholdstep"))
             {
@@ -857,9 +865,14 @@ int main(int argc, char** argv)
 
         if (argh.arg("scaling") || argh.arg("scaling-power"))
             if (argh.arg("scaling-power"))
+            {
+                if (scaling_log)
+                    vout << 1 << "You specified both scaling-power and scaling-log. scaling-log takes priority\n";
                 argh.arg("scaling-power", scaling);
+            }
             else
                 scaling = 1.0;
+
 
         vout << 1 << "Processing\n";
 
@@ -925,7 +938,7 @@ int main(int argc, char** argv)
                     if (between_ptr)
                         crit = getVarwithin(clusters, allpoints, dense_point_neighbours) / between;
                     else
-                        crit = dovariance(clusters, allpoints, dense_point_neighbours, scaling);
+                        crit = dovariance(clusters, allpoints, dense_point_neighbours, scaling, scaling_log);
                     if ( crit>bestcrit ) // asssume we are maximizing
                     {
                         bestcrit = crit;
@@ -954,7 +967,7 @@ int main(int argc, char** argv)
                 if (between_ptr)
                     crit = getVarwithin(clusters, allpoints, dense_point_neighbours) / between;
                 else
-                    crit = dovariance(clusters, allpoints, dense_point_neighbours, scaling);
+                    crit = dovariance(clusters, allpoints, dense_point_neighbours, scaling, scaling_log);
                 // we run deterministic algorithm!
                 assert(crit==bestcrit);
             }
@@ -1028,7 +1041,7 @@ int main(int argc, char** argv)
                 }
                 else
                 {
-                    std::cout << dovariance(clusters,allpoints, dense_point_neighbours, scaling)
+                    std::cout << dovariance(clusters,allpoints, dense_point_neighbours, scaling, scaling_log)
                               << std::endl;
                 }
             }
