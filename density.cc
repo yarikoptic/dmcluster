@@ -19,8 +19,8 @@
  *        dense points.
  */
 
-typedef std::map<RUMBA::Point<int>, std::set<int> > bucketmap_t;
-typedef std::map<RUMBA::Point<int>, std::set<int> >::const_iterator
+typedef std::map<RUMBA::Point<int>, std::set<uint> > bucketmap_t;
+typedef std::map<RUMBA::Point<int>, std::set<uint> >::const_iterator
     bucketmap_const_iterator;
 
 
@@ -79,7 +79,7 @@ bucketmap_t bucket (double R,
     bucketmap_t result;
 
     RUMBA::Point<int> thebucket;
-    std::set<int> emptyset;
+    std::set<uint> emptyset;
 
     for (uint i = 0; i < allpoints.size(); ++i)
     {
@@ -116,7 +116,7 @@ std::vector<int> & nearby_points
                     (RUMBA::Point<int> (i,j,k,0) );
                 if (tmp != f.buckets.end())
                 {
-                    for (std::set<int>::const_iterator it =
+                    for (std::set<uint>::const_iterator it =
                             tmp->second.begin();
                             it != tmp->second.end();
                             ++it)
@@ -154,8 +154,8 @@ double getSSBetween ( const clusterlist_t & clusters,
     std::pair<int,int> p;
     double SSbetween = 0;
     int N = clusters.size();
-    for (int i = 0; i < clusters.size(); ++i)
-        for (int j = 0; j < i; ++j)
+    for (uint i = 0; i < clusters.size(); ++i)
+        for (uint j = 0; j < i; ++j)
         {
                p = nearest_points(i,j,clusters, f);
                SSbetween += square(f(clusters[i][p.first],clusters[j][p.second]));
@@ -167,11 +167,11 @@ clusterlist_t cluster2
 (
  std::vector<point_t> allpoints,
  distance_function_t f,
- int threshold,
+ uint threshold,
  double R_start,
  double R_end,
  double R_step,
- std::vector<int> & dense_points,
+ dense_points_t & dense_points,
  std::map<int, std::vector<int> >& dense_point_neighbours,
  double* ssbetween ,
  bool merge_on_introduction ,
@@ -213,7 +213,7 @@ clusterlist_t cluster2
     return clusters;
 }
 
-void filter_clusters(clusterlist_t &  clusters, int minimal_cluster_size=1)
+void filter_clusters(clusterlist_t &  clusters, uint minimal_cluster_size=1)
 {
     if (minimal_cluster_size>1)
     {
@@ -223,7 +223,7 @@ void filter_clusters(clusterlist_t &  clusters, int minimal_cluster_size=1)
         // to don't employ uncomprehendable trickeries of STL lets do it simple way
         for (clusterlist_t::iterator it = clusters.begin();
              it < clusters.end(); it++)
-            if (it->size()<minimal_cluster_size)
+            if (it->size() < minimal_cluster_size)
             {
                 vout << 6 << it->size() << ',';
                 clusters.erase(it);
@@ -246,14 +246,14 @@ clusterlist_t cluster_plain
 (
  std::vector<point_t> allpoints,
  distance_function_t f,
- int threshold,
+ uint threshold,
  double R,
- std::vector<int> & dense_points,
+ dense_points_t & dense_points,
  std::map<int, std::vector<int> >& dense_point_neighbours,
  double* ssbetween ,
  bool merge_on_introduction ,
  enum merge_rule_t merge_rule ,
- int minimal_cluster_size = 1  // if >1 -- eliminate clusters with less than that number of voxels
+ uint minimal_cluster_size = 1  // if >1 -- eliminate clusters with less than that number of voxels
  )
 {
     clusterlist_t clusters;
@@ -280,8 +280,8 @@ clusterlist_t cluster_plain
 /* identify dense points and their "electors" */
 void find_dense_points(
         std::vector<point_t> allpoints,
-        double R, int threshold,
-        std::vector<int> & dense_points,
+        double R, uint threshold,
+        dense_points_t & dense_points,
         std::map<int, std::vector<int> > & dense_point_neighbours
         )
 {
@@ -290,7 +290,7 @@ void find_dense_points(
     bucketmap_t buckets = bucket(R, allpoints);
     bucket_distance_function D  ( euclidean3, buckets, allpoints);
 
-    for (int i = 0; i < dense_points.size(); ++i)
+    for (uint i = 0; i < dense_points.size(); ++i)
         if (dense_points[i]<threshold)
         {
             dense_points[i] = density(i,R,D,nearby_points);

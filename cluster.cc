@@ -158,7 +158,7 @@ public:
 };
 
 
-int countmembers ( std::vector<int> dense_points, int threshold)
+int countmembers ( dense_points_t dense_points, uint threshold)
 {
     int result = 0;
     for (uint i = 0; i < dense_points.size(); ++i)
@@ -321,7 +321,7 @@ double dovariance ( const clusterlist_t& clusters,
 
 
 
-double density_ratio (const std::vector<int> & dense_points, int threshold)
+double density_ratio (const dense_points_t & dense_points, uint threshold)
 {
     // density computation
     double density_within = 0;
@@ -702,7 +702,7 @@ void help(const char* progname)
 int main(int argc, char** argv)
 {
     double radius = 5.0;
-    int threshold = 10;
+    uint threshold = 10;
     double valuesthreshold = 2.3;
     int voxelspace = false;    // by default -- operate in mm
     bool operatenifti = false;  // by default operate with ascii and stdin/stdout
@@ -720,8 +720,8 @@ int main(int argc, char** argv)
     double radiusstep = 0.5;
     double radiusstart = 0.01;
     int thresholdstep = 1;
-    int thresholdstart = 10;
-    int minimal_cluster_size = 1;
+    uint thresholdstart = 10;
+    uint minimal_cluster_size = 1;
 
     std::vector<int> cluster_sizes; // number of clusters in the solution for
     // each value of the R parameter
@@ -808,7 +808,7 @@ int main(int argc, char** argv)
         setarg(argh, "nonmembers", show_nonmembers, true);
 
         std::vector<point_t> allpoints;
-        std::vector<int> dense_points;
+        dense_points_t dense_points;
         std::map<int, std::vector<int> > dense_point_neighbours;
         clusterlist_t clusters;
 
@@ -895,7 +895,7 @@ int main(int argc, char** argv)
         else if (1) // radiusstart!= radius || thresholdstart != threshold )
         {
             vout << 3 << "Sweeping over different values of threshold and radius\n";
-            int t = thresholdstart, bestt=0, tried=0;
+            uint t = thresholdstart, bestt=0, tried=0;
             double bestr=0, bestcrit=0, crit=0;
 
             double r = radiusstart;

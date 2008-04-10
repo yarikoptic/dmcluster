@@ -10,6 +10,8 @@ typedef RUMBA::Point<double> point_t;
 typedef double (*distance_function_t)(const point_t&,const point_t&);
 typedef std::vector<std::vector<int> > clusterlist_t ;
 
+typedef std::vector<uint> dense_points_t;
+
 
 double euclidean3(const RUMBA::Point<double>& p, const RUMBA::Point<double>&q);
 void check_cluster(clusterlist_t & clusters);
@@ -23,8 +25,8 @@ void merge_clusters
 
 template <typename T>
 void scanpoints(clusterlist_t & clusters, 
-        double R, const T& D, int threshold, 
-        std::vector<int> & dense_points );
+        double R, const T& D, uint threshold, 
+        dense_points_t & dense_points );
 
 template <typename T>
 void new_dense_point(int index, clusterlist_t & clusters, 
@@ -35,19 +37,19 @@ void new_dense_point(int index, clusterlist_t & clusters,
 
 
 template <typename T>
-double average_distance ( int index, int cluster_no, 
+double average_distance ( int index, unsigned int cluster_no, 
         const clusterlist_t & clusters, const T& D)
 {
     assert(cluster_no < clusters.size());
     const std::vector<int> & L = clusters[cluster_no];
     double sum = 0;
-    for (int i = 0; i < L.size(); ++i)
+    for (unsigned int i = 0; i < L.size(); ++i)
         sum += D(L[i],index);
     return sum/L.size();
 }
 
 template <typename T>
-std::pair<int,int> nearest_points(int cluster_no1, int cluster_no2, 
+std::pair<unsigned int,unsigned int> nearest_points(unsigned int cluster_no1, unsigned int cluster_no2,
         const clusterlist_t& clusters, const T& D)
 {
     assert (cluster_no1 < clusters.size() && cluster_no2 < clusters.size());
@@ -58,8 +60,8 @@ std::pair<int,int> nearest_points(int cluster_no1, int cluster_no2,
     int current_j = 0;
     double dist = 0;
 
-    for (int i = 0; i < L1.size(); ++i )
-        for (int j = 0; j < L2.size(); ++j )
+    for (unsigned int i = 0; i < L1.size(); ++i )
+        for (unsigned int j = 0; j < L2.size(); ++j )
         {
             dist = D(L1[i],L2[j]);
             if (dist < current_min)
@@ -71,7 +73,7 @@ std::pair<int,int> nearest_points(int cluster_no1, int cluster_no2,
 
         }
 
-    return std::pair<int,int>(current_i, current_j);
+    return std::pair<unsigned int,unsigned int>(current_i, current_j);
 }
 
 template <typename T>
@@ -89,7 +91,7 @@ double nn_dist_to_cluster(int index, const std::vector<int> & L, double R,
         const T & D)
 {
     double tmp, min=D(index,L[0]);
-    for (int i= 1; i < L.size(); ++i)
+    for (unsigned int i= 1; i < L.size(); ++i)
     {
         tmp=D(index,L[i]);
 	//std::cerr << tmp << std::endl;
@@ -111,7 +113,7 @@ std::vector<std::pair<int,double> > check_nearby_point(int index, const clusterl
     double tmp;
 
     std::vector< std::pair<int,double> > matching_clusters;
-    for (int i = 0; i < clusters.size(); ++i)
+    for (unsigned int i = 0; i < clusters.size(); ++i)
     {
         tmp=nn_dist_to_cluster(index, clusters[i],R,D);
 	//std::cerr << "tmp,R" << tmp << ", " << R << std::endl;
@@ -169,8 +171,8 @@ void new_dense_point(int index, clusterlist_t & clusters,
 
 template <typename T>
 void scanpoints(clusterlist_t & clusters, 
-        double R, const T& D, int threshold, 
-        std::vector<int> & dense_points,
+        double R, const T& D, uint threshold, 
+        dense_points_t & dense_points,
         std::map<int, std::vector<int> > & dense_point_neighbours,
         bool merge_on_introduction, enum merge_rule_t merge_rule = NN_MERGE
         )
@@ -178,7 +180,7 @@ void scanpoints(clusterlist_t & clusters,
     std::vector<int> nearby_points;
 //    enum merge_rule_t merge_rule = RJ_MERGE;
 //    enum merge_rule_t merge_rule = NN_MERGE;
-    for (int i = 0; i < dense_points.size(); ++i)
+    for (unsigned int i = 0; i < dense_points.size(); ++i)
         if (dense_points[i]<threshold)
         {
             dense_points[i] = density(i,R,D,nearby_points);
@@ -194,10 +196,10 @@ void scanpoints(clusterlist_t & clusters,
 
     clusterlist_t L = clusters;
 
-    for (int i = 0; i < clusters.size(); ++i)
-        for (int j = i+1; j < clusters.size(); ++j)
+    for (unsigned int i = 0; i < clusters.size(); ++i)
+        for (unsigned int j = i+1; j < clusters.size(); ++j)
         {
-            std::pair<int,int> p = nearest_points(i,j,clusters,D);
+            std::pair<unsigned int,unsigned int> p = nearest_points(i,j,clusters,D);
             double d1;
             if (merge_rule == RJ_MERGE) 
                 d1 = 
