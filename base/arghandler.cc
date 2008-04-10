@@ -223,6 +223,13 @@ void ArgHandler::arg(const char* argname, int& val)
 	val = x;
 }
 
+void ArgHandler::arg(const char* argname, uint& val)
+{
+	int x;
+	x = (uint) lookup(argname)->second.asInt();
+	val = x;
+}
+
 void ArgHandler::arg(const char* argname, short& val)
 {
 	int x;

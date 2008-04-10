@@ -162,12 +162,21 @@ public:
 	  */	
 	void arg(const char* argname, int&);
 
+/** 
+	  * Retrieve a NUMERIC argument as type int. Throws an exception if 
+	  * there's no default
+	  * value for that argument, and no argument was given.
+	  */	
+	void arg(const char* argname, uint&);
+
+
 	/** 
 	  * Retrieve a NUMERIC argument as type float . Throws an exception if 
 	  * there's no default
 	  * value for that argument, and no argument was given.
 	  */	
 	void arg(const char* argname, float&);
+
 	/** 
 	  * Retrieve a NUMERIC argument as type float . Throws an exception if 
 	  * there's no default
