@@ -608,8 +608,16 @@ void merge_clusters
 }
 
 
+bool _cluster_sort_comp(const std::vector<int>& left, const std::vector<int>& right)
+{
+    return left.size() > right.size();
+}
 
-
+void sort_clusters(clusterlist_t &  clusters)
+{
+    clusterlist_t new_clusters;
+    std::sort(clusters.begin(), clusters.end(), _cluster_sort_comp);
+}
 
 
 double euclidean3(const RUMBA::Point<double>& p, const RUMBA::Point<double>&q)
@@ -633,6 +641,7 @@ RUMBA::Argument myArgs [] =
     RUMBA::Argument ( "variance", RUMBA::FLAG, '\0' ),
     RUMBA::Argument ( "rescale", RUMBA::FLAG, 's' ),
     RUMBA::Argument ( "nnbetween", RUMBA::FLAG, '\0'),
+    RUMBA::Argument ( "no-sort", RUMBA::FLAG, '\0'),
     RUMBA::Argument ( "scaling", RUMBA::FLAG, '\0'),
     RUMBA::Argument ( "scaling-power", RUMBA::NUMERIC, '\0'), // power to which bring number of clusters
     RUMBA::Argument ( "densepoints", RUMBA::FLAG, '\0'),
@@ -670,6 +679,7 @@ void help(const char* progname)
         "  [--quiet|-q]: analog to --verbose 0\n" <<
         "  [--inputpoints]: only output list of input points, so it could be\n" <<
         "                   into elderly cluster tool\n" <<
+        "  [--no-sort]: do not sort cluster indexes in descending order\n" <<
         "  [--densepoints]: only output list of dense points, don't cluster\n" <<
         "  [-n|--nonmembers]: show points that don't meet density threshold\n" <<
         "     (these are assigned to \"cluster <numberofclusters+1>\")\n" <<
@@ -704,6 +714,7 @@ int main(int argc, char** argv)
     double scaling = 0.0;
     double between = 0;
     double * between_ptr = 0;
+    bool do_sort_clusters = true;
     bool merge_on_introduction = false;
     double radiusstep = 0.5;
     double radiusstart = 0.01;
@@ -744,6 +755,8 @@ int main(int argc, char** argv)
         if (argh.arg("rjmerge"))
             merge_rule = RJ_MERGE;
 
+        if (argh.arg("no-sort"))
+            do_sort_clusters = false;
 
         setarg(argh, "radius", radius, true);
 
@@ -932,6 +945,7 @@ int main(int argc, char** argv)
                     allpoints, euclidean3, bestt, bestr,
                     dense_points, dense_point_neighbours, between_ptr,
                     merge_on_introduction, merge_rule);
+
                 // check the quality ;-)
                 if (between_ptr)
                     crit = getVarwithin(clusters, allpoints, dense_point_neighbours) / between;
@@ -940,7 +954,6 @@ int main(int argc, char** argv)
                 // we run deterministic algorithm!
                 assert(crit==bestcrit);
             }
-
             vout << 1 << "crit=" << crit <<
                 " #clusters=" << clusters.size() <<
                 " threshold=" << bestt << " radius="<<bestr << "\n";
@@ -948,13 +961,20 @@ int main(int argc, char** argv)
         }
         else
         {
-
+            return -1;
             vout << 3 << "Calling cluster2() " << "\n";
             clusters = cluster2(
                 allpoints, euclidean3, threshold,
                 radiusstart, radius, radiusstep , dense_points, dense_point_neighbours, between_ptr,
                 merge_on_introduction, merge_rule, &cluster_sizes);
             vout << 3 << "cluster2() has completed with " << clusters.size() << " clusters found." << "\n";
+        }
+
+        // we might need just to sort them
+        if (do_sort_clusters)
+        {
+            vout << 2 << "Sorting clusters by the number of members\n";
+            sort_clusters(clusters);
         }
 
         if (show_nonmembers)
