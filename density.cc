@@ -213,6 +213,27 @@ clusterlist_t cluster2
     return clusters;
 }
 
+void filter_clusters(clusterlist_t &  clusters, int minimal_cluster_size=1)
+{
+    if (minimal_cluster_size>1)
+    {
+        int nremoved=0;
+        vout << 6 << "Removing clusters with # of elements <" << minimal_cluster_size << ": ";
+
+        // to don't employ uncomprehendable trickeries of STL lets do it simple way
+        for (clusterlist_t::iterator it = clusters.begin();
+             it < clusters.end(); it++)
+            if (it->size()<minimal_cluster_size)
+            {
+                vout << 6 << it->size() << ',';
+                clusters.erase(it);
+                nremoved++;
+            }
+        vout << 6 << "\n";
+        vout << 6 << "Total removed: " << nremoved <<" clusters\n";
+    }
+}
+
 /*
  Lobotomized cluster2 to do only its job - for given
  R and threshold compute clusters.
@@ -231,7 +252,8 @@ clusterlist_t cluster_plain
  std::map<int, std::vector<int> >& dense_point_neighbours,
  double* ssbetween ,
  bool merge_on_introduction ,
- enum merge_rule_t merge_rule
+ enum merge_rule_t merge_rule ,
+ int minimal_cluster_size = 1  // if >1 -- eliminate clusters with less than that number of voxels
  )
 {
     clusterlist_t clusters;
@@ -246,6 +268,8 @@ clusterlist_t cluster_plain
     scanpoints(clusters, R, D, threshold, dense_points,
                dense_point_neighbours,
                merge_on_introduction, merge_rule);
+
+    filter_clusters(clusters, minimal_cluster_size);
 
     if (ssbetween)
         *ssbetween = getSSBetween(clusters,D);

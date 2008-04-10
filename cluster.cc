@@ -16,7 +16,7 @@
 
 #include <nifti1_io.h>
 
-std::string version = "0.1.7+scaling";
+std::string version = "0.1.7+scaling+sort+minclustersize";
 
 typedef float datatype;
 
@@ -615,7 +615,6 @@ bool _cluster_sort_comp(const std::vector<int>& left, const std::vector<int>& ri
 
 void sort_clusters(clusterlist_t &  clusters)
 {
-    clusterlist_t new_clusters;
     std::sort(clusters.begin(), clusters.end(), _cluster_sort_comp);
 }
 
@@ -644,6 +643,7 @@ RUMBA::Argument myArgs [] =
     RUMBA::Argument ( "no-sort", RUMBA::FLAG, '\0'),
     RUMBA::Argument ( "scaling", RUMBA::FLAG, '\0'),
     RUMBA::Argument ( "scaling-power", RUMBA::NUMERIC, '\0'), // power to which bring number of clusters
+    RUMBA::Argument ( "minimal-cluster-size", RUMBA::NUMERIC, 'm'), // prune clusters if size less than given
     RUMBA::Argument ( "densepoints", RUMBA::FLAG, '\0'),
     RUMBA::Argument ( "inputpoints", RUMBA::FLAG, '\0'),
     RUMBA::Argument ( "radiusstep", RUMBA::NUMERIC, '\0'), // step size for iterations
@@ -691,6 +691,7 @@ void help(const char* progname)
         "     set then not scale by number of clusters\n" <<
         "  [--scaling-power <value>]: bring number of clusters (enables --scaling)\n" <<
         "     to the given power.\n" <<
+        "  [-m|--minimal-cluster-size <value>]: prune clusters with size less specified.\n" <<
         "\n" <<
         "\nNote that density is output before variance if both args are given\n";
 }
@@ -720,6 +721,7 @@ int main(int argc, char** argv)
     double radiusstart = 0.01;
     int thresholdstep = 1;
     int thresholdstart = 10;
+    int minimal_cluster_size = 1;
 
     std::vector<int> cluster_sizes; // number of clusters in the solution for
     // each value of the R parameter
@@ -783,6 +785,8 @@ int main(int argc, char** argv)
         // XXX Do checks
         setarg(argh, "thresholdstep", thresholdstep);
         setarg(argh, "thresholdstart", thresholdstart);
+        setarg(argh, "minimal-cluster-size", minimal_cluster_size);
+
         if (thresholdstart != threshold) // so if thresholdstart was provided
             if (!argh.arg("thresholdstep"))
             {
@@ -915,7 +919,7 @@ int main(int argc, char** argv)
                     clusters = cluster_plain(
                         allpoints, euclidean3, t, r,
                         dense_points, dense_point_neighbours, between_ptr,
-                        merge_on_introduction, merge_rule);
+                        merge_on_introduction, merge_rule, minimal_cluster_size);
 
                     // check the quality ;-)
                     if (between_ptr)
@@ -944,7 +948,7 @@ int main(int argc, char** argv)
                 clusters = cluster_plain(
                     allpoints, euclidean3, bestt, bestr,
                     dense_points, dense_point_neighbours, between_ptr,
-                    merge_on_introduction, merge_rule);
+                    merge_on_introduction, merge_rule, minimal_cluster_size);
 
                 // check the quality ;-)
                 if (between_ptr)
