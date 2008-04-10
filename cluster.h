@@ -16,20 +16,20 @@ typedef std::vector<uint> dense_points_t;
 double euclidean3(const RUMBA::Point<double>& p, const RUMBA::Point<double>&q);
 void check_cluster(clusterlist_t & clusters);
 clusterlist_t disjoint_union(clusterlist_t & L);
-// void merge_clusters 
+// void merge_clusters
 // (const std::vector<int>& merged_clusters, clusterlist_t &  clusters);
-void merge_clusters 
-(const std::vector<std::pair<int,double> > & merged_clusters, 
+void merge_clusters
+(const std::vector<std::pair<int,double> > & merged_clusters,
  clusterlist_t &  clusters);
 
 
 template <typename T>
-void scanpoints(clusterlist_t & clusters, 
-        double R, const T& D, uint threshold, 
+void scanpoints(clusterlist_t & clusters,
+        double R, const T& D, uint threshold,
         dense_points_t & dense_points );
 
 template <typename T>
-void new_dense_point(int index, clusterlist_t & clusters, 
+void new_dense_point(int index, clusterlist_t & clusters,
         double R, const T & D);
 
 
@@ -37,7 +37,7 @@ void new_dense_point(int index, clusterlist_t & clusters,
 
 
 template <typename T>
-double average_distance ( int index, unsigned int cluster_no, 
+double average_distance ( int index, unsigned int cluster_no,
         const clusterlist_t & clusters, const T& D)
 {
     assert(cluster_no < clusters.size());
@@ -67,7 +67,7 @@ std::pair<unsigned int,unsigned int> nearest_points(unsigned int cluster_no1, un
             if (dist < current_min)
             {
                 current_min = dist;
-                current_i = i; 
+                current_i = i;
                 current_j = j;
             }
 
@@ -130,7 +130,7 @@ std::vector<std::pair<int,double> > check_nearby_point(int index, const clusterl
 }
 
 template <typename T>
-void new_dense_point(int index, clusterlist_t & clusters, 
+void new_dense_point(int index, clusterlist_t & clusters,
         double R, const T & D, bool merge_on_introduction)
 {
     std::vector<std::pair<int,double> > matching_clusters;
@@ -139,8 +139,8 @@ void new_dense_point(int index, clusterlist_t & clusters,
     // 1. check that we're within R of some dense point.
     matching_clusters = check_nearby_point(index,clusters,R,D,&count);
     // if not, initiate a new cluster
-    //std::cerr << "Count: " << count << std::endl;	
-    //std::cerr << "matching_clusters.size(): " << matching_clusters.size() << std::endl;	
+    //std::cerr << "Count: " << count << std::endl;
+    //std::cerr << "matching_clusters.size(): " << matching_clusters.size() << std::endl;
     if (!count)
     {
         std::vector<int> tmp;
@@ -160,9 +160,9 @@ void new_dense_point(int index, clusterlist_t & clusters,
     //else std::cerr <<"got one\n";
 
     // 3. otherwise we have to merge lists.
-    if (merge_on_introduction) 
+    if (merge_on_introduction)
     {
-        assert(count>1); 
+        assert(count>1);
         merge_clusters(matching_clusters,clusters);
     }
 }
@@ -170,8 +170,8 @@ void new_dense_point(int index, clusterlist_t & clusters,
 
 
 template <typename T>
-void scanpoints(clusterlist_t & clusters, 
-        double R, const T& D, uint threshold, 
+void scanpoints(clusterlist_t & clusters,
+        double R, const T& D, uint threshold,
         dense_points_t & dense_points,
         std::map<int, std::vector<int> > & dense_point_neighbours,
         bool merge_on_introduction, enum merge_rule_t merge_rule = NN_MERGE
@@ -201,8 +201,8 @@ void scanpoints(clusterlist_t & clusters,
         {
             std::pair<unsigned int,unsigned int> p = nearest_points(i,j,clusters,D);
             double d1;
-            if (merge_rule == RJ_MERGE) 
-                d1 = 
+            if (merge_rule == RJ_MERGE)
+                d1 =
                 0.5*average_distance(clusters[i][p.first],i,clusters,D) +
                 0.5*average_distance(clusters[j][p.second],j,clusters,D);
             else
@@ -214,7 +214,7 @@ void scanpoints(clusterlist_t & clusters,
                 std::vector<int> tmp;
                 tmp.push_back(L[i][0]);
                 tmp.push_back(L[j][0]);
-                L.push_back(tmp); 
+                L.push_back(tmp);
             }
         }
     check_cluster(clusters);

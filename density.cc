@@ -147,7 +147,7 @@ double getSSBetween ( const clusterlist_t & clusters,
         const bucket_distance_function & f )
 /* yoh: Get the sum of distances between closest points between each pair of clusters,
    sum is normalized by the total number of such pairs
-   So it is average squared distance between closest points of any two clusters, 
+   So it is average squared distance between closest points of any two clusters,
    so pretty much some obscured variance ;-)
  */
 {
