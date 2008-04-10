@@ -16,7 +16,7 @@
 
 #include <nifti1_io.h>
 
-std::string version = "0.1.7";
+std::string version = "0.1.7+scaling";
 
 typedef float datatype;
 
@@ -273,7 +273,7 @@ double getVarwithin( const clusterlist_t& clusters,
 double dovariance ( const clusterlist_t& clusters,
                     const std::vector<RUMBA::Point<double> > & allpoints,
                     const std::map<int, std::vector<int> >& dense_point_neighbours,
-                    const bool scaling)
+                    const double scaling)
 {
     RUMBA::Point<double> m;
     std::vector<RUMBA::Point<double> > cluster_means;
@@ -312,8 +312,8 @@ double dovariance ( const clusterlist_t& clusters,
 //     std::cerr << variance(cluster_means) +varwithin << " " << vartotal << std::endl;
 
 //     return (variance(cluster_means) + varwithin) * clusters.size() / varwithin;
-    if (scaling)
-        return vartotal / (varwithin/clusters.size());
+    if (scaling != 0)
+        return vartotal / (varwithin/pow(clusters.size(), scaling));
     else
         return vartotal / varwithin;
 
@@ -634,6 +634,7 @@ RUMBA::Argument myArgs [] =
     RUMBA::Argument ( "rescale", RUMBA::FLAG, 's' ),
     RUMBA::Argument ( "nnbetween", RUMBA::FLAG, '\0'),
     RUMBA::Argument ( "scaling", RUMBA::FLAG, '\0'),
+    RUMBA::Argument ( "scaling-power", RUMBA::NUMERIC, '\0'), // power to which bring number of clusters
     RUMBA::Argument ( "densepoints", RUMBA::FLAG, '\0'),
     RUMBA::Argument ( "inputpoints", RUMBA::FLAG, '\0'),
     RUMBA::Argument ( "radiusstep", RUMBA::NUMERIC, '\0'), // step size for iterations
@@ -678,6 +679,9 @@ void help(const char* progname)
         "     if set. If not -- defines it as a centroid distance.\n" <<
         "  [--scaling]: scaling the criterion with the number of clusters. If not\n" <<
         "     set then not scale by number of clusters\n" <<
+        "  [--scaling-power <value>]: bring number of clusters (enables --scaling)\n" <<
+        "     to the given power.\n" <<
+        "\n" <<
         "\nNote that density is output before variance if both args are given\n";
 }
 
@@ -697,7 +701,7 @@ int main(int argc, char** argv)
 
     OutputResults * out = NULL;
     std::ofstream fout;
-    bool scaling = false;
+    double scaling = 0.0;
     double between = 0;
     double * between_ptr = 0;
     bool merge_on_introduction = false;
@@ -834,8 +838,11 @@ int main(int argc, char** argv)
         if (argh.arg("nnbetween"))
             between_ptr = &between;
 
-        if (argh.arg("scaling"))
-            scaling = true;
+        if (argh.arg("scaling") || argh.arg("scaling-power"))
+            if (argh.arg("scaling-power"))
+                argh.arg("scaling-power", scaling);
+            else
+                scaling = 1.0;
 
         vout << 1 << "Processing\n";
 
