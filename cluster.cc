@@ -35,7 +35,7 @@ void setarg(RUMBA::ArgHandler & argh,
             vout << 3 << "i: " << name << " is set to " << variable << "\n";
         }
     else if (printdefault)
-        vout << 2 << "!: no value for parameter " << name 
+        vout << 2 << "!: no value for parameter " << name
              << " was specified. Assuming default value " << variable << "\n";
 }
 
@@ -50,7 +50,7 @@ std::ostream& printpoint(const RUMBA::Point<double> & p, std::ostream& out)
     return out;
 }
 
-// Classes to provide easy choice of output -- either in ASCII (stdout/file), where 
+// Classes to provide easy choice of output -- either in ASCII (stdout/file), where
 // simply coordinates are printed, or into brain image volume (analyze,nifti) via libnifti
 // where cluster indexes are labeled by class number
 class OutputResults
@@ -436,7 +436,7 @@ std::vector<point_t> loadniftifile(std::string infile,
 
     vout << 2 << "Reading file " << infile << "\n";
     // Lets loop through all voxels in that "Volume"
-    for (long long int offset=0;
+    for (unsigned long long int offset=0;
          offset< ni->nvox;
          offset++) {
         if ((threshold>0 and data[offset] < threshold) ||
