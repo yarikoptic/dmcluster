@@ -67,7 +67,7 @@ try:
 				thresholds.append(float(resd['thr']))
 
 				# now we need to extract values for that threshold
-				line_ = re.sub("thr=[\d\s:]*", "", line)
+				line_ = re.sub("thr=[\d\s]*:\s*", "", line)
 				line_ = re.sub("nan", "0", line_)
 				line_crits = [float(x) for x in re.sub("/[\d.]+\s*", " ", line_).split()]
 				line_css =     [int(x) for x in re.sub("\s*[\d.]+/", " ", line_).split()]
