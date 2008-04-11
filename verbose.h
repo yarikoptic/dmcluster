@@ -103,8 +103,8 @@ public:
         {
 			if (indent)
 			{
-				int indent = (clevel_<=10?clevel_-1:10);
-				for (int i=0; i<indent; i++) doout << " ";
+				uint indent = (clevel_<=10?clevel_-1:10);
+				for (uint i=0; i<indent; i++) doout << " ";
 			}
             return doout;
         }

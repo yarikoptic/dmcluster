@@ -7,29 +7,41 @@
 enum merge_rule_t { RJ_MERGE , NN_MERGE  };
 
 typedef RUMBA::Point<double> point_t;
-typedef double (*distance_function_t)(const point_t&,const point_t&);
-typedef std::vector<std::vector<int> > clusterlist_t ;
+typedef RUMBA::Point<int> bucket_t;
 
-typedef std::vector<uint> dense_points_t;
+typedef std::vector<point_t> points_t;
+
+typedef double (*distance_function_t)(const point_t&, const point_t&);
+typedef std::vector<uint> indexes_t;
+typedef std::vector<indexes_t> clusters_t;
+
+typedef std::pair<uint, double> indexdist_t;
+typedef std::vector<indexdist_t> indexdistlist_t;
+
+typedef std::map<uint, indexes_t> neighbors_t;
+
+//typedef std::vector<uint> dense_points_t;
+#define dense_points_t indexes_t
+#define cluster_t indexes_t
 
 
-double euclidean3(const RUMBA::Point<double>& p, const RUMBA::Point<double>&q);
-void check_cluster(clusterlist_t & clusters);
-clusterlist_t disjoint_union(clusterlist_t & L);
+double euclidean3(const point_t& p, const point_t&q);
+void check_cluster(clusters_t & clusters);
+clusters_t disjoint_union(clusters_t & L);
 // void merge_clusters
-// (const std::vector<int>& merged_clusters, clusterlist_t &  clusters);
+// (const std::vector<int>& merged_clusters, clusters_t &  clusters);
 void merge_clusters
-(const std::vector<std::pair<int,double> > & merged_clusters,
- clusterlist_t &  clusters);
+(const indexdistlist_t & merged_clusters,
+ clusters_t &  clusters);
 
 
 template <typename T>
-void scanpoints(clusterlist_t & clusters,
+void scanpoints(clusters_t & clusters,
         double R, const T& D, uint threshold,
         dense_points_t & dense_points );
 
 template <typename T>
-void new_dense_point(int index, clusterlist_t & clusters,
+void new_dense_point(uint index, clusters_t & clusters,
         double R, const T & D);
 
 
@@ -37,31 +49,31 @@ void new_dense_point(int index, clusterlist_t & clusters,
 
 
 template <typename T>
-double average_distance ( int index, unsigned int cluster_no,
-        const clusterlist_t & clusters, const T& D)
+double average_distance (uint index, uint cluster_no,
+        const clusters_t & clusters, const T& D)
 {
     assert(cluster_no < clusters.size());
-    const std::vector<int> & L = clusters[cluster_no];
+    const cluster_t & L = clusters[cluster_no];
     double sum = 0;
-    for (unsigned int i = 0; i < L.size(); ++i)
+    for (uint i = 0; i < L.size(); ++i)
         sum += D(L[i],index);
     return sum/L.size();
 }
 
 template <typename T>
-std::pair<unsigned int,unsigned int> nearest_points(unsigned int cluster_no1, unsigned int cluster_no2,
-        const clusterlist_t& clusters, const T& D)
+std::pair<uint,uint> nearest_points(uint cluster_no1, uint cluster_no2,
+        const clusters_t& clusters, const T& D)
 {
     assert (cluster_no1 < clusters.size() && cluster_no2 < clusters.size());
-    const std::vector<int> & L1 = clusters[cluster_no1];
-    const std::vector<int> & L2 = clusters[cluster_no2];
+    const cluster_t & L1 = clusters[cluster_no1];
+    const cluster_t & L2 = clusters[cluster_no2];
     double current_min = D(L1[0],L2[0]);
     int current_i = 0;
     int current_j = 0;
     double dist = 0;
 
-    for (unsigned int i = 0; i < L1.size(); ++i )
-        for (unsigned int j = 0; j < L2.size(); ++j )
+    for (uint i = 0; i < L1.size(); ++i )
+        for (uint j = 0; j < L2.size(); ++j )
         {
             dist = D(L1[i],L2[j]);
             if (dist < current_min)
@@ -73,25 +85,25 @@ std::pair<unsigned int,unsigned int> nearest_points(unsigned int cluster_no1, un
 
         }
 
-    return std::pair<unsigned int,unsigned int>(current_i, current_j);
+    return std::pair<uint,uint>(current_i, current_j);
 }
 
 template <typename T>
-bool is_near_cluster(int index, const std::vector<int> & L, double R,
+bool is_near_cluster(uint index, const cluster_t & L, double R,
         const T & D)
 {
-    for (int i= 0; i < L.size(); ++i)
+    for (uint i= 0; i < L.size(); ++i)
         if (D(index,L[i]) <=R)
             return 1;
     return 0;
 }
 
 template <typename T>
-double nn_dist_to_cluster(int index, const std::vector<int> & L, double R,
+double nn_dist_to_cluster(uint index, const cluster_t & L, double R,
         const T & D)
 {
     double tmp, min=D(index,L[0]);
-    for (unsigned int i= 1; i < L.size(); ++i)
+    for (uint i= 1; i < L.size(); ++i)
     {
         tmp=D(index,L[i]);
 	//std::cerr << tmp << std::endl;
@@ -101,26 +113,26 @@ double nn_dist_to_cluster(int index, const std::vector<int> & L, double R,
     return min;
 }
 
-bool mycomp(const std::pair<int,double>& left, const std::pair<int,double>& right) ;
+bool mycomp(const indexdist_t& left, const indexdist_t& right) ;
 
 
 // returns matching clusters
 template <typename T>
-std::vector<std::pair<int,double> > check_nearby_point(int index, const clusterlist_t& clusters,
+indexdistlist_t check_nearby_point(uint index, const clusters_t& clusters,
         double R, const T& D, int* Count)
 {
     int count = 0;
     double tmp;
 
-    std::vector< std::pair<int,double> > matching_clusters;
-    for (unsigned int i = 0; i < clusters.size(); ++i)
+    indexdistlist_t matching_clusters;
+    for (uint i = 0; i < clusters.size(); ++i)
     {
         tmp=nn_dist_to_cluster(index, clusters[i],R,D);
 	//std::cerr << "tmp,R" << tmp << ", " << R << std::endl;
         if (tmp<R)
         {
             ++count;
-            matching_clusters.push_back(std::pair<int,double>(i,tmp));
+            matching_clusters.push_back(indexdist_t(i,tmp));
         }
     }
     std::sort
@@ -130,10 +142,10 @@ std::vector<std::pair<int,double> > check_nearby_point(int index, const clusterl
 }
 
 template <typename T>
-void new_dense_point(int index, clusterlist_t & clusters,
+void new_dense_point(uint index, clusters_t & clusters,
         double R, const T & D, bool merge_on_introduction)
 {
-    std::vector<std::pair<int,double> > matching_clusters;
+    indexdistlist_t matching_clusters;
     int count = 0;
     check_cluster(clusters);
     // 1. check that we're within R of some dense point.
@@ -143,7 +155,7 @@ void new_dense_point(int index, clusterlist_t & clusters,
     //std::cerr << "matching_clusters.size(): " << matching_clusters.size() << std::endl;
     if (!count)
     {
-        std::vector<int> tmp;
+        cluster_t tmp;
         tmp.push_back(index);
         clusters.push_back(tmp);
         return;
@@ -170,17 +182,17 @@ void new_dense_point(int index, clusterlist_t & clusters,
 
 
 template <typename T>
-void scanpoints(clusterlist_t & clusters,
+void scanpoints(clusters_t & clusters,
         double R, const T& D, uint threshold,
         dense_points_t & dense_points,
-        std::map<int, std::vector<int> > & dense_point_neighbours,
+        neighbors_t & dense_point_neighbours,
         bool merge_on_introduction, enum merge_rule_t merge_rule = NN_MERGE
         )
 {
-    std::vector<int> nearby_points;
+    indexes_t nearby_points;
 //    enum merge_rule_t merge_rule = RJ_MERGE;
 //    enum merge_rule_t merge_rule = NN_MERGE;
-    for (unsigned int i = 0; i < dense_points.size(); ++i)
+    for (uint i = 0; i < dense_points.size(); ++i)
         if (dense_points[i]<threshold)
         {
             dense_points[i] = density(i,R,D,nearby_points);
@@ -194,12 +206,12 @@ void scanpoints(clusterlist_t & clusters,
             nearby_points.clear();
         }
 
-    clusterlist_t L = clusters;
+    clusters_t L = clusters;
 
-    for (unsigned int i = 0; i < clusters.size(); ++i)
-        for (unsigned int j = i+1; j < clusters.size(); ++j)
+    for (uint i = 0; i < clusters.size(); ++i)
+        for (uint j = i+1; j < clusters.size(); ++j)
         {
-            std::pair<unsigned int,unsigned int> p = nearest_points(i,j,clusters,D);
+            std::pair<uint,uint> p = nearest_points(i,j,clusters,D);
             double d1;
             if (merge_rule == RJ_MERGE)
                 d1 =
@@ -211,7 +223,7 @@ void scanpoints(clusterlist_t & clusters,
 
             if (d2 < d1)
             {
-                std::vector<int> tmp;
+                cluster_t tmp;
                 tmp.push_back(L[i][0]);
                 tmp.push_back(L[j][0]);
                 L.push_back(tmp);

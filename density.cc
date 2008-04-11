@@ -19,8 +19,8 @@
  *        dense points.
  */
 
-typedef std::map<RUMBA::Point<int>, std::set<uint> > bucketmap_t;
-typedef std::map<RUMBA::Point<int>, std::set<uint> >::const_iterator
+typedef std::map<bucket_t, std::set<uint> > bucketmap_t;
+typedef std::map<bucket_t, std::set<uint> >::const_iterator
     bucketmap_const_iterator;
 
 
@@ -30,13 +30,13 @@ struct bucket_distance_function
 
  distance_function_t f;
  const bucketmap_t& buckets;
- const std::vector<point_t > & allpoints;
+ const points_t & allpoints;
  bucket_distance_function
  (distance_function_t f, const bucketmap_t& buckets,
-         const std::vector< point_t > & allpoints );
+         const points_t & allpoints );
 
   double operator() (
-         const RUMBA::Point<double>& p, const RUMBA::Point<double> & q
+         const point_t& p, const point_t & q
          ) const
  {
      return f(p,q);
@@ -48,13 +48,13 @@ struct bucket_distance_function
 
 bucket_distance_function::bucket_distance_function
 (distance_function_t f_, const bucketmap_t& buckets_,
-         const std::vector< RUMBA::Point<double> > & allpoints_ )
+         const points_t & allpoints_ )
  : f(f_), buckets(buckets_), allpoints(allpoints_)
  {}
 
 
 
-RUMBA::Point<int> getBucket ( const RUMBA::Point<double> & p, double R)
+bucket_t getBucket ( const point_t & p, double R)
 {
 #if 0
 // apparently it doesn't matter if we simply floor or round.
@@ -68,17 +68,17 @@ RUMBA::Point<int> getBucket ( const RUMBA::Point<double> & p, double R)
     int y = static_cast<int> (p.y()/R);
     int z = static_cast<int> (p.z()/R);
 #endif
-    return RUMBA::Point<int> (x,y,z,0);
+    return bucket_t (x,y,z,0);
 }
 
 
 bucketmap_t bucket (double R,
-        const std::vector<RUMBA::Point<double> >& allpoints )
+        const points_t& allpoints )
 {
     // key = bin x,y,z, value = point number
     bucketmap_t result;
 
-    RUMBA::Point<int> thebucket;
+    bucket_t thebucket;
     std::set<uint> emptyset;
 
     for (uint i = 0; i < allpoints.size(); ++i)
@@ -100,11 +100,11 @@ int density
 (
 int i, double R,
 const bucket_distance_function & f,
-std::vector<int> & nearby_points
+indexes_t & nearby_points
   )
 {
-    RUMBA::Point<double> p = f.allpoints[i];
-    RUMBA::Point<int> thebucket = getBucket ( p,R );
+    point_t p = f.allpoints[i];
+    bucket_t thebucket = getBucket ( p,R );
     VDOUT(106, "Called desnity i=" << i <<" R=" << R << "\n");
 
     int count = 0;
@@ -113,7 +113,7 @@ std::vector<int> & nearby_points
            for (int k = thebucket.z()-1;  k <= thebucket.z()+1; ++k)
            {
                 bucketmap_const_iterator tmp = f.buckets.find
-                    (RUMBA::Point<int> (i,j,k,0) );
+                    (bucket_t(i,j,k,0) );
                 if (tmp != f.buckets.end())
                 {
                     for (std::set<uint>::const_iterator it =
@@ -143,7 +143,7 @@ std::vector<int> & nearby_points
 }
 
 static double square (double x) { return x*x; }
-double getSSBetween ( const clusterlist_t & clusters,
+double getSSBetween ( const clusters_t & clusters,
         const bucket_distance_function & f )
 /* yoh: Get the sum of distances between closest points between each pair of clusters,
    sum is normalized by the total number of such pairs
@@ -163,24 +163,24 @@ double getSSBetween ( const clusterlist_t & clusters,
     return SSbetween/(N*(N-1)/2);
 }
 
-clusterlist_t cluster2
+clusters_t cluster2
 (
- std::vector<point_t> allpoints,
+ points_t allpoints,
  distance_function_t f,
  uint threshold,
  double R_start,
  double R_end,
  double R_step,
  dense_points_t & dense_points,
- std::map<int, std::vector<int> >& dense_point_neighbours,
+ neighbors_t& dense_point_neighbours,
  double* ssbetween ,
  bool merge_on_introduction ,
  enum merge_rule_t merge_rule ,
  std::vector<int> * cluster_sizes = 0
  )
 {
-    clusterlist_t clusters;
-    int N = allpoints.size();
+    clusters_t clusters;
+    uint N = allpoints.size();
     dense_points.resize(N);
     if (R_step == 0) R_step = (R_end-R_start)/10;
 
@@ -199,7 +199,7 @@ clusterlist_t cluster2
         R += R_step;
     } while (R < R_end && R_step > 0);
 
-    for (int i = 0; i < N; ++i)
+    for (uint i = 0; i < N; ++i)
         dense_points[i] = 0;
 
     bucketmap_t buckets = bucket(R_end, allpoints);
@@ -213,7 +213,7 @@ clusterlist_t cluster2
     return clusters;
 }
 
-void filter_clusters(clusterlist_t &  clusters, uint minimal_cluster_size=1)
+void filter_clusters(clusters_t &  clusters, uint minimal_cluster_size=1)
 {
     if (minimal_cluster_size>1)
     {
@@ -221,7 +221,7 @@ void filter_clusters(clusterlist_t &  clusters, uint minimal_cluster_size=1)
         vout << 6 << "Removing clusters with # of elements <" << minimal_cluster_size << ": ";
 
         // to don't employ uncomprehendable trickeries of STL lets do it simple way
-        for (clusterlist_t::iterator it = clusters.begin();
+        for (clusters_t::iterator it = clusters.begin();
              it < clusters.end(); it++)
             if (it->size() < minimal_cluster_size)
             {
@@ -242,21 +242,21 @@ void filter_clusters(clusterlist_t &  clusters, uint minimal_cluster_size=1)
  to select 'best' and best set might be over different pairs of R,threshold
  yoh decided to neglect performance hit for now
  */
-clusterlist_t cluster_plain
+clusters_t cluster_plain
 (
- std::vector<point_t> allpoints,
+ points_t allpoints,
  distance_function_t f,
  uint threshold,
  double R,
  dense_points_t & dense_points,
- std::map<int, std::vector<int> >& dense_point_neighbours,
+ neighbors_t& dense_point_neighbours,
  double* ssbetween ,
  bool merge_on_introduction ,
  enum merge_rule_t merge_rule ,
  uint minimal_cluster_size = 1  // if >1 -- eliminate clusters with less than that number of voxels
  )
 {
-    clusterlist_t clusters;
+    clusters_t clusters;
     int N = allpoints.size();
     dense_points.resize(N);
     for (int i = 0; i < N; ++i)
@@ -279,14 +279,14 @@ clusterlist_t cluster_plain
 
 /* identify dense points and their "electors" */
 void find_dense_points(
-        std::vector<point_t> allpoints,
+        points_t allpoints,
         double R, uint threshold,
         dense_points_t & dense_points,
-        std::map<int, std::vector<int> > & dense_point_neighbours
+        neighbors_t & dense_point_neighbours
         )
 {
     dense_points.resize(allpoints.size());
-    std::vector<int> nearby_points;
+    indexes_t nearby_points;
     bucketmap_t buckets = bucket(R, allpoints);
     bucket_distance_function D  ( euclidean3, buckets, allpoints);
 
