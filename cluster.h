@@ -1,5 +1,6 @@
 #include "rumba/point.hpp"
 #include <vector>
+#include <set>
 #include <algorithm>
 #include <map>
 #include <cassert>
@@ -13,6 +14,7 @@ typedef std::vector<point_t> points_t;
 
 typedef double (*distance_function_t)(const point_t&, const point_t&);
 typedef std::vector<uint> indexes_t;
+typedef std::set<uint> indexset_t;
 typedef std::vector<indexes_t> clusters_t;
 
 typedef std::pair<uint, double> indexdist_t;

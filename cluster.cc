@@ -12,7 +12,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <set>
 
 #include <nifti1_io.h>
 
@@ -172,7 +171,7 @@ int countmembers ( dense_points_t dense_points, uint threshold)
 
 double variance
 (
- const std::set<int>& cluster, const points_t & allpoints,
+ const indexset_t& cluster, const points_t & allpoints,
  point_t * mean = 0
  )
 {
@@ -182,7 +181,7 @@ double variance
     double sumXX = 0, sumYY = 0, sumZZ = 0;
     point_t p;
 
-    for (std::set<int>::const_iterator i = cluster.begin();
+    for (indexset_t::const_iterator i = cluster.begin();
             i !=cluster.end(); ++i)
     {
         p = allpoints[*i];
@@ -236,11 +235,11 @@ double variance
     return varX + varY + varZ;
 }
 
-std::set<int> cluster_and_neighbours
+indexset_t cluster_and_neighbours
 ( const cluster_t & cluster,
   const neighbors_t& neighbours )
 {
-    std::set<int> result;
+    indexset_t result;
     neighbors_t::const_iterator it;
     for (uint i = 0; i < cluster.size(); ++i )
     {
@@ -262,7 +261,7 @@ double getVarwithin( const clusters_t& clusters,
     {
         if (clusters[i].size() < 2)
             continue;
-        std::set<int> thelist =
+        indexset_t thelist =
             cluster_and_neighbours(clusters[i],dense_point_neighbours);
         result += variance (thelist,allpoints,&m); //variance within
     }
@@ -291,10 +290,9 @@ double dovariance ( const clusters_t& clusters,
         if (clusters[i].size() < 2)
             continue;
 
-        std::set<int> thelist =
+        indexset_t thelist =
             cluster_and_neighbours(clusters[i],dense_point_neighbours);
         varwithin += variance (thelist,allpoints,&m); //variance within
-
         //varwithin += variance (clusters[i]); //variance within
         cluster_means.push_back(m);
         for (uint j = 0; j < clusters[i].size(); ++j ) {
@@ -560,7 +558,7 @@ cluster_t non_cluster_members
 void check_cluster(clusters_t & clusters)
 {
     /*
-    std::set<int> s;
+    indexset_t s;
     for (uint i = 0; i < clusters.size(); ++i)
         for (int j = 1; j < clusters[i].size(); ++j )
         {
