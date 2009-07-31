@@ -15,7 +15,7 @@
 
 #include <nifti1_io.h>
 
-std::string version = "0.1.7+scaling+sort+minclustersize+scalinglog";
+std::string version = "0.1.8";
 
 typedef float datatype;
 
