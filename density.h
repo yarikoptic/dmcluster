@@ -1,3 +1,5 @@
+#include <sys/types.h>
+
 clusters_t cluster2
 (
  points_t allpoints,

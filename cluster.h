@@ -1,4 +1,5 @@
 #include "rumba/point.hpp"
+#include <sys/types.h>
 #include <vector>
 #include <set>
 #include <algorithm>
