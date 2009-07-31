@@ -21,4 +21,4 @@ endif
 .PHONY: base all clean
 clean:
 	$(MAKE) -C base clean
-	rm -f *.o *.d *~ $(dfiles)
+	rm -f *.o *.d *~ $(dfiles) cluster
