@@ -4,7 +4,7 @@
 #include <iomanip>
 #include <sstream>
 #include <string>
-#include <limits>
+#include <limits.h>
 #include "cluster.h"
 #include "density.h"
 #include "rumba/arghandler.h"
@@ -863,7 +863,7 @@ int main(int argc, char** argv)
         if (argh.arg("nnbetween"))
             between_ptr = &between;
 
-        if (argh.arg("scaling") || argh.arg("scaling-power"))
+        if (argh.arg("scaling") || argh.arg("scaling-power")) {
             if (argh.arg("scaling-power"))
             {
                 if (scaling_log)
@@ -872,7 +872,7 @@ int main(int argc, char** argv)
             }
             else
                 scaling = 1.0;
-
+        }
 
         vout << 1 << "Processing\n";
 
@@ -1030,7 +1030,7 @@ int main(int argc, char** argv)
                       << std::endl;
         }
 
-        if (argh.arg("variance"))
+        if (argh.arg("variance")) {
             if (clusters.size()>0)
             {
                 vout << 3 << "Output variance\n";
@@ -1047,7 +1047,7 @@ int main(int argc, char** argv)
             }
             else
                 std::cout << "0\nNo clusters found. Variance cannot be computed\n";
-
+        }
         if (argh.arg("radiusstart"))
         {
             double rtmp = radiusstart;

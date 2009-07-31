@@ -14,13 +14,13 @@ namespace RUMBA
 {
 
 
-/** 
-* A type to represent what data type an argument is. 
+/**
+* A type to represent what data type an argument is.
 */
-enum Argtype { 
-	FLAG, 
-	ALPHA,  
-	NUMERIC 
+enum Argtype {
+	FLAG,
+	ALPHA,
+	NUMERIC
 };
 
 
@@ -37,18 +37,18 @@ struct Argument
 	bool multi;
 
 
-	Argument ( 
-			std::string longArg, 
-			enum Argtype type, 
+	Argument (
+			std::string longArg,
+			enum Argtype type,
 			char shortArg = 0
 		);
 
-	Argument ( 
-			std::string longArg, 
-			enum Argtype type, 
-			char shortArg, 
-			const RUMBA::Splodge& defaultValue, 
-			bool required = false, 
+	Argument (
+			std::string longArg,
+			enum Argtype type,
+			char shortArg,
+			const RUMBA::Splodge& defaultValue,
+			bool required = false,
 			bool multi = false
 		);
 	Argument();
@@ -60,10 +60,10 @@ struct Argument
 /**
   * 	The ArgHandler class is designed to simplify the routine task
   *		of command-line parseing. Typically, one uses it as follows:
-  First, we need an array of arguments. It must be "terminated", a 
+  First, we need an array of arguments. It must be "terminated", a
   terminator argument is created by using the default Argument constructor:
 \code
-       Argument myArgs[] = { 
+       Argument myArgs[] = {
   			Argument ( "arga", ALPHA, 'a', "default" ),
 			Argument ( "argb", NUMERIC 'b', Splodge(), true ),
 			Argument ( "foo", FLAG ),
@@ -72,10 +72,10 @@ struct Argument
 \endcode
 
 	Then in the main program, one creates the ArgHandler object. Note
-	that this should be done in a try/catch block (more on exception 
+	that this should be done in a try/catch block (more on exception
 	handling later):
 \code
-	try 
+	try
 	{
 		ArgHandler argh(argc,argv,myArgs);
 \endcode
@@ -83,9 +83,9 @@ struct Argument
 	Having created the ArgHandler, we recover the arguments:
 
 \code
-	std::string a; 
-	double b; 
-	bool foo; 
+	std::string a;
+	double b;
+	bool foo;
 	bool have_b = true;
 	argh.arg("arga", arga);
 	if ( argh.arg("argb"))
@@ -103,12 +103,12 @@ struct Argument
 class ArgHandler
 {
 public:
-	/** 
+	/**
 	  * constructor. Use this if you have no custom arguments.
   	*/
 	ArgHandler(int argc, char** argv, Argument* = 0);
 
-	/** 
+	/**
 	  * print debug info
 	  */
 	void print(std::ostream& s = std::cout);
@@ -116,72 +116,72 @@ public:
 	/** initialise argHandler object (prepare for argument extraction).
 	  * You shouldn't need to use this.
 	  */
-	void init();	
+	void init();
 
-	/** 
+	/**
 	  * make one of the default arguments (infile,outfile) a multi-argument
 	  */
 	static void setMultiDefaultArg(const char* argname);
 
-	/** 
+	/**
 	  * make one of the default arguments (infile,outfile) a required-argument
 	  */
 	static void setRequiredDefaultArg(const char* argname);
 
-	/** 
+	/**
 	  * returns true if argument was given on command line, false otherwise.
 	  * This can be used to check for flags, *and* to see if long arguments
 	  * were given
 	  */
 	bool arg(const char* argname);
 
-	/** 
+	/**
 	  * Retrieve a string argument. Throws an exception if there's no default
 	  * value for that argument, and no argument was given.
 	  */
 	void arg(const char* argname, std::string&);
 
-	/** 
-	  * Retrieve a character (ALPHA) argument. Throws an exception if 
+	/**
+	  * Retrieve a character (ALPHA) argument. Throws an exception if
 	  * there's no default
 	  * value for that argument, and no argument was given.
 	  */
 	void arg(const char* argname, char&);
 
-	/** 
-	  * Retrieve a NUMERIC argument as a short int. Throws an exception if 
+	/**
+	  * Retrieve a NUMERIC argument as a short int. Throws an exception if
 	  * there's no default
 	  * value for that argument, and no argument was given.
 	  */
 	void arg(const char* argname, short&);
 
-	/** 
-	  * Retrieve a NUMERIC argument as type int. Throws an exception if 
+	/**
+	  * Retrieve a NUMERIC argument as type int. Throws an exception if
 	  * there's no default
 	  * value for that argument, and no argument was given.
-	  */	
+	  */
 	void arg(const char* argname, int&);
 
-/** 
-	  * Retrieve a NUMERIC argument as type int. Throws an exception if 
+	/**
+	  * Retrieve a NUMERIC argument as type int. Throws an exception if
 	  * there's no default
 	  * value for that argument, and no argument was given.
-	  */	
-	void arg(const char* argname, uint&);
+	  */
+	void arg(const char* argname, unsigned int&);
 
 
-	/** 
-	  * Retrieve a NUMERIC argument as type float . Throws an exception if 
+	/**
+	  * Retrieve a NUMERIC argument as type float . Throws an exception if
 	  * there's no default
 	  * value for that argument, and no argument was given.
-	  */	
+	  */
 	void arg(const char* argname, float&);
 
-	/** 
-	  * Retrieve a NUMERIC argument as type float . Throws an exception if 
+	/**
+	  * Retrieve a NUMERIC argument as type float . Throws an exception if
 	  * there's no default
 	  * value for that argument, and no argument was given.
-	  */	
+	  */
 	void arg(const char* argname, double&);
 
 	/**
@@ -197,17 +197,17 @@ public:
 	  */
 	const std::vector<RUMBA::Splodge> & multiarg(const char* argname);
 
-	/** 
+	/**
 	  * return loose arguments. If there aqe none, return an empty list.
 	  */
 	const std::vector<std::string> & loose() { return Loose; }
 
 	/**
 	  * Return an iterator whose key is the argument name, and value is
-	  * the argument value. A numeric argument or a flag will be stored as a 
+	  * the argument value. A numeric argument or a flag will be stored as a
 	  * numeric splodge. ALPHA arguments will be stored as a Splodge string.
 	  */
-	std::map<std::string, RUMBA::Splodge>::const_iterator 
+	std::map<std::string, RUMBA::Splodge>::const_iterator
 		lookup(const char* argname);
 
 private:
@@ -220,9 +220,9 @@ private:
 
 	// verify required arguments are included.
 	bool checkRequired();
-	
+
 	// arguments given by user OR arguments with default values.
-	std::map<std::string, RUMBA::Splodge> Argv; 
+	std::map<std::string, RUMBA::Splodge> Argv;
 	std::map<std::string, std::vector<RUMBA::Splodge> > MultiArgv;
 
 	std::vector<std::string> Loose; // loose arguments.
@@ -236,7 +236,7 @@ private:
 	RUMBA::Log log;
 };
 
-class ArgHandlerException 
+class ArgHandlerException
 : public RUMBA::Exception
 {
 public:
@@ -244,7 +244,7 @@ public:
 		: RUMBA::Exception(std::string("Program invocation error: ") + s){}
 };
 
-class MissingArgumentException 
+class MissingArgumentException
 : public ArgHandlerException
 {
 public:
@@ -252,7 +252,7 @@ public:
 		: ArgHandlerException(std::string("Missing Argument: ")+s){}
 };
 
-class InvalidArgumentException 
+class InvalidArgumentException
 : public ArgHandlerException
 {
 public:
@@ -261,7 +261,7 @@ public:
 
 };
 
-class DuplicateArgumentException 
+class DuplicateArgumentException
 : public ArgHandlerException
 {
 public:

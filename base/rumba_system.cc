@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <rumba/rumba_system.h>
 #include <string>
 #include <list>

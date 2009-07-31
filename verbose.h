@@ -50,6 +50,7 @@
 
 #define POINT_OUT(p) p.x() << ", "
 
+#include <stdlib.h>
 #include <iostream>
 
 class VerboseOutputWorker
@@ -103,8 +104,8 @@ public:
         {
 			if (indent)
 			{
-				uint indent = (clevel_<=10?clevel_-1:10);
-				for (uint i=0; i<indent; i++) doout << " ";
+				unsigned int indent = (clevel_<=10?clevel_-1:10);
+				for (unsigned int i=0; i<indent; i++) doout << " ";
 			}
             return doout;
         }
