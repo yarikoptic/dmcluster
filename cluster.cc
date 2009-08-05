@@ -668,6 +668,11 @@ void help(const char* progname)
         " [-b|--bucket] [--density|-d] [--rjmerge] [--rescale] ]\n" <<
         " [<additional options>]\n" <<
         std::endl <<
+        "Input:\n" <<
+        "  Input information (i.e. x y z t coordinates) would be read from\n" <<
+        "  standard input, unless option -i (or --input) with a Nifti/Analyze\n" <<
+        "  file is provided.\n" <<
+        std::endl <<
         "Options altering search for optimal value\n" <<
         " (X can be threshold and/or radius):\n" <<
         " [--Xstart]: start value for X\n" <<
