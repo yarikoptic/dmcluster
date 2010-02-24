@@ -8,7 +8,7 @@ override CPPFLAGS += -MMD
 dfiles = $(addsuffix .d, $(basename $(notdir $(OBJS))))
 
 all: $(OBJS) base
-	$(CXX) $(LD_FLAGS) -o cluster *.o base/*.o
+	$(CXX) $(LD_FLAGS) -o dmcluster *.o base/*.o
 
 base:
 	$(MAKE) -C base
